@@ -899,8 +899,7 @@
   }
 }
 
-/* FINAL A4 AUDIT PRINT ONLY */
-
+/* FINAL STOCK TAKING TAG PRINT */
 @media print{
   @page{
     size:A4 portrait;
@@ -909,1009 +908,357 @@
 
   html,
   body{
-    width:210mm!important;
+    background:#fff!important;
     margin:0!important;
     padding:0!important;
-    background:#fff!important;
   }
 
   .topbar,
   .nav,
   .no-print,
-  .resume-toolbar,
   .btn,
   button,
   input,
   select,
   textarea{
     display:none!important;
-    visibility:hidden!important;
   }
 
   .app{
     max-width:none!important;
-    width:100%!important;
-    margin:0!important;
-    padding:0!important;
-  }
-
-  .grid{
-    display:block!important;
-    margin:0!important;
-    padding:0!important;
-  }
-
-  .card{
-    box-shadow:none!important;
-    border:0!important;
-    background:#fff!important;
-    padding:0!important;
-    margin:0!important;
-  }
-
-  .audit-card{
-    display:block!important;
     width:198mm!important;
-    min-height:285mm!important;
     margin:0 auto!important;
     padding:0!important;
-    page-break-after:always!important;
-    break-after:page!important;
-    overflow:hidden!important;
   }
 
-  .audit-card:last-child{
-    page-break-after:auto!important;
-    break-after:auto!important;
-  }
-
-  .audit-card .no-print{
-    display:none!important;
-    visibility:hidden!important;
-  }
-
-  .audit-sheet{
-    display:block!important;
-    width:198mm!important;
-    max-width:198mm!important;
-    min-height:285mm!important;
-    margin:0 auto!important;
-    padding:0!important;
-    background:#fff!important;
-    color:#111!important;
-    font-family:Arial, Helvetica, sans-serif!important;
-    transform:none!important;
-    zoom:1!important;
-  }
-
-  .audit-form-title{
-    text-align:center!important;
-    font-size:12px!important;
-    font-weight:900!important;
-    border:1.5px solid #111!important;
-    padding:2mm 0!important;
-    margin:0!important;
-    line-height:1!important;
-  }
-
-  .audit-header-table{
-    display:grid!important;
-    grid-template-columns:1fr 35mm!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
-  }
-
-  .audit-header-left{
-    border-right:1.5px solid #111!important;
-  }
-
-  .audit-h-row{
-    display:grid!important;
-    grid-template-columns:38mm 1fr!important;
-    min-height:6mm!important;
-    border-bottom:1px solid #111!important;
-  }
-
-  .audit-h-row:last-child{
-    border-bottom:0!important;
-  }
-
-  .audit-h-label{
-    font-size:7px!important;
-    font-weight:900!important;
-    padding:1mm 1.5mm!important;
-    border-right:1px solid #111!important;
-    line-height:1.05!important;
-  }
-
-  .audit-h-value{
-    font-size:8px!important;
-    padding:1mm 1.5mm!important;
-    line-height:1.05!important;
-  }
-
-  .audit-header-right{
-    min-height:24mm!important;
-    padding:1mm!important;
-  }
-
-  .audit-count-title{
-    font-size:7px!important;
-    font-weight:900!important;
-  }
-
-  .audit-count-name{
-    margin-top:7mm!important;
-    text-align:center!important;
-    font-size:8px!important;
-    font-weight:900!important;
-  }
-
-  .audit-main-table{
-    width:100%!important;
-    border-collapse:collapse!important;
-    table-layout:fixed!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
-    border-top:0!important;
-    font-size:7px!important;
-  }
-
-  .audit-main-table th,
-  .audit-main-table td{
-    border:1px solid #111!important;
-    padding:1mm!important;
-    height:6mm!important;
-    vertical-align:middle!important;
-    line-height:1.05!important;
-  }
-
-  .audit-main-table th{
-    text-align:center!important;
-    font-weight:900!important;
-    background:#f3f4f6!important;
-  }
-
-  .audit-main-table .num{
-    text-align:right!important;
-  }
-
-  .audit-footer{
-    display:grid!important;
-    grid-template-columns:1fr 42mm!important;
-    min-height:30mm!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
-  }
-
-  .audit-number-guide{
-    align-self:end!important;
-    margin:0 5mm 5mm 5mm!important;
-    border:1px solid #9ca3af!important;
-    padding:3mm!important;
-    font-size:16px!important;
-    font-weight:900!important;
-    letter-spacing:3mm!important;
-    color:#6b7280!important;
-  }
-
-  .audit-number-guide span{
-    display:inline-block!important;
-  }
-
-  .audit-sign-box{
-    border-left:1.5px solid #111!important;
-    font-size:7px!important;
-  }
-
-  .audit-sign-title{
-    text-align:center!important;
-    font-weight:900!important;
-    border-bottom:1px solid #111!important;
-    padding:1mm!important;
-    font-size:7px!important;
-  }
-
-  .audit-sign-grid{
-    display:grid!important;
-    grid-template-columns:1fr 1fr 1fr!important;
-    border-bottom:1px solid #111!important;
-  }
-
-  .audit-sign-grid > div{
-    border-right:1px solid #111!important;
-  }
-
-  .audit-sign-grid > div:last-child{
-    border-right:0!important;
-  }
-
-  .audit-sign-role{
-    text-align:center!important;
-    font-weight:900!important;
-    border-bottom:1px solid #111!important;
-    padding:1mm!important;
-    font-size:6px!important;
-  }
-
-  .audit-sign-space{
-    height:18mm!important;
-    text-align:center!important;
-    padding-top:4mm!important;
-    font-size:6px!important;
-    line-height:1.1!important;
-  }
-
-  .audit-sign-space span{
-    font-size:5px!important;
-  }
-
-  .audit-time-count{
-    padding:1mm!important;
-    text-align:right!important;
-    font-size:6px!important;
-  }
-}
-
-/* FINAL FIX PRINT WIDTH - BACK TO ORIGINAL ORDER */
-@media print{
-  .audit-card{
-    width:198mm!important;
-    max-width:198mm!important;
-    overflow:hidden!important;
-  }
-
-  .audit-sheet{
-    width:198mm!important;
-    max-width:198mm!important;
-  }
-
-  .audit-main-table{
-    width:198mm!important;
-    max-width:198mm!important;
-    table-layout:fixed!important;
-  }
-
-  .audit-main-table col.col-no{width:7mm!important;}
-  .audit-main-table col.col-partno{width:31mm!important;}
-  .audit-main-table col.col-fii{width:12mm!important;}
-  .audit-main-table col.col-partname{width:50mm!important;}
-  .audit-main-table col.col-qtybox{width:14mm!important;}
-  .audit-main-table col.col-box{width:15mm!important;}
-  .audit-main-table col.col-total{width:15mm!important;}
-  .audit-main-table col.col-fraction{width:15mm!important;}
-  .audit-main-table col.col-grand{width:21mm!important;}
-  .audit-main-table col.col-rack{width:18mm!important;}
-
-  .audit-main-table th,
-  .audit-main-table td{
-    font-size:6.3px!important;
-    padding:0.7mm!important;
-    overflow:hidden!important;
-    word-break:break-word!important;
-    line-height:1.05!important;
-  }
-
-  .audit-main-table .num{
-    text-align:right!important;
-  }
-}
-
-/* MAXIMIZE A4 PORTRAIT AUDIT PRINT */
-@media print{
-  @page{
-    size:A4 portrait;
-    margin:5mm;
-  }
-
-  html,
-  body{
-    width:210mm!important;
-    height:297mm!important;
-    margin:0!important;
-    padding:0!important;
-    background:#fff!important;
-  }
-
-  .topbar,
-  .nav,
-  .no-print,
-  .resume-toolbar,
-  .btn,
-  button,
-  input,
-  select,
-  textarea{
-    display:none!important;
-    visibility:hidden!important;
-  }
-
-  .app,
   .grid,
-  .card{
+  .resume-page{
     display:block!important;
-    width:100%!important;
-    max-width:none!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
+  }
+
+  .card,
+  .resume-card{
     box-shadow:none!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:0!important;
+    margin:0!important;
     background:#fff!important;
   }
 
-  .audit-card{
+  .resume-card{
+    display:none!important;
+  }
+
+  .print-mode-one .resume-card.print-single-target{
     display:block!important;
-    width:200mm!important;
-    height:287mm!important;
-    min-height:287mm!important;
-    margin:0 auto!important;
-    padding:0!important;
-    page-break-after:always!important;
-    break-after:page!important;
-    overflow:hidden!important;
   }
 
-  .audit-card:last-child{
-    page-break-after:auto!important;
-    break-after:auto!important;
+  .print-mode-mass .resume-card.print-date-target{
+    display:block!important;
   }
 
-  .audit-sheet{
-    width:200mm!important;
-    max-width:200mm!important;
-    height:287mm!important;
-    min-height:287mm!important;
-    margin:0 auto!important;
-    padding:0!important;
+  body:not(.print-one-mode):not(.print-mass-mode) .resume-card{
+    display:block!important;
+  }
+
+  .print-a4-page{
+    width:198mm!important;
+    height:285mm!important;
+    box-sizing:border-box!important;
+    border:1px solid #000!important;
     background:#fff!important;
-    color:#111!important;
-    font-family:Arial, Helvetica, sans-serif!important;
+    overflow:hidden!important;
+    page-break-after:always;
+    break-after:page;
+    padding:2mm!important;
   }
 
-  .audit-form-title{
+  .print-title{
     height:8mm!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
+    line-height:8mm!important;
     text-align:center!important;
     font-size:13px!important;
     font-weight:900!important;
-    border:1.5px solid #111!important;
-    padding:0!important;
-    margin:0!important;
-    line-height:1!important;
-  }
-
-  .audit-header-table{
-    display:grid!important;
-    grid-template-columns:1fr 38mm!important;
-    height:28mm!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
-  }
-
-  .audit-header-left{
-    border-right:1.5px solid #111!important;
-  }
-
-  .audit-h-row{
-    display:grid!important;
-    grid-template-columns:42mm 1fr!important;
-    min-height:7mm!important;
-    height:7mm!important;
-    border-bottom:1px solid #111!important;
-  }
-
-  .audit-h-row:last-child{
+    border:1px solid #000!important;
     border-bottom:0!important;
   }
 
-  .audit-h-label{
-    font-size:7.5px!important;
+  .print-head{
+    display:grid!important;
+    grid-template-columns:1fr 36mm!important;
+    border:1px solid #000!important;
+    margin-bottom:2mm!important;
+  }
+
+  .print-info-row{
+    display:grid!important;
+    grid-template-columns:32mm 1fr!important;
+    min-height:8mm!important;
+    border-bottom:1px solid #000!important;
+  }
+
+  .print-info-row:last-child{
+    border-bottom:0!important;
+  }
+
+  .print-label{
+    font-size:8px!important;
     font-weight:900!important;
-    padding:1mm 1.5mm!important;
-    border-right:1px solid #111!important;
-    line-height:1.05!important;
-  }
-
-  .audit-h-value{
-    font-size:8.5px!important;
-    padding:1mm 1.5mm!important;
-    line-height:1.05!important;
-  }
-
-  .audit-header-right{
-    height:28mm!important;
     padding:1mm!important;
+    border-right:1px solid #000!important;
   }
 
-  .audit-count-title{
+  .print-info-row div:last-child{
+    font-size:8px!important;
+    padding:1mm!important;
+    display:flex!important;
+    align-items:center!important;
+  }
+
+  .print-count-name{
+    border-left:1px solid #000!important;
+  }
+
+  .print-count-label{
     font-size:7px!important;
     font-weight:900!important;
+    height:10mm!important;
+    padding:1mm!important;
+    border-bottom:1px solid #000!important;
   }
 
-  .audit-count-name{
-    margin-top:8mm!important;
-    text-align:center!important;
-    font-size:8.5px!important;
+  .print-count-value{
+    height:24mm!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    font-size:10px!important;
     font-weight:900!important;
+    text-align:center!important;
   }
 
-  .audit-main-table{
-    width:200mm!important;
-    max-width:200mm!important;
-    table-layout:fixed!important;
+  .print-table{
+    width:100%!important;
     border-collapse:collapse!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
-    border-top:0!important;
-    font-size:7.3px!important;
+    table-layout:fixed!important;
+    margin:0!important;
   }
 
-  .audit-main-table col.col-no{width:7mm!important;}
-  .audit-main-table col.col-partno{width:31mm!important;}
-  .audit-main-table col.col-fii{width:12mm!important;}
-  .audit-main-table col.col-partname{width:51mm!important;}
-  .audit-main-table col.col-qtybox{width:14mm!important;}
-  .audit-main-table col.col-box{width:15mm!important;}
-  .audit-main-table col.col-total{width:15mm!important;}
-  .audit-main-table col.col-fraction{width:15mm!important;}
-  .audit-main-table col.col-grand{width:21mm!important;}
-  .audit-main-table col.col-rack{width:19mm!important;}
-
-  .audit-main-table th,
-  .audit-main-table td{
-    border:1px solid #111!important;
-    padding:0.9mm!important;
-    height:7.3mm!important;
-    min-height:7.3mm!important;
-    vertical-align:middle!important;
+  .print-table th,
+  .print-table td{
+    border:1px solid #000!important;
+    color:#000!important;
+    background:#fff!important;
+    padding:1px 2px!important;
+    font-size:7.2px!important;
     line-height:1.05!important;
+    vertical-align:middle!important;
     overflow:hidden!important;
-    word-break:break-word!important;
   }
 
-  .audit-main-table th{
+  .print-table th{
     text-align:center!important;
     font-weight:900!important;
-    background:#f3f4f6!important;
-    font-size:7px!important;
   }
 
-  .audit-main-table .num{
+  .print-table thead tr:first-child th{
+    height:9mm!important;
+  }
+
+  .print-table thead tr:nth-child(2) th{
+    height:5mm!important;
+  }
+
+  .print-table tbody tr{
+    height:6.35mm!important;
+  }
+
+  .print-table th:nth-child(1),
+  .print-table td:nth-child(1){
+    width:7mm!important;
+  }
+
+  .print-table th:nth-child(2),
+  .print-table td:nth-child(2){
+    width:28mm!important;
+  }
+
+  .print-table th:nth-child(3),
+  .print-table td:nth-child(3){
+    width:11mm!important;
+  }
+
+  .print-table th:nth-child(4),
+  .print-table td:nth-child(4){
+    width:47mm!important;
+  }
+
+  .print-table th:nth-child(5),
+  .print-table td:nth-child(5){
+    width:13mm!important;
+  }
+
+  .print-table th:nth-child(6),
+  .print-table td:nth-child(6){
+    width:16mm!important;
+  }
+
+  .print-table th:nth-child(7),
+  .print-table td:nth-child(7){
+    width:16mm!important;
+  }
+
+  .print-table th:nth-child(8),
+  .print-table td:nth-child(8){
+    width:15mm!important;
+  }
+
+  .print-table th:nth-child(9),
+  .print-table td:nth-child(9){
+    width:18mm!important;
+  }
+
+  .print-table th:nth-child(10),
+  .print-table td:nth-child(10){
+    width:22mm!important;
+  }
+
+  .center{
+    text-align:center!important;
+  }
+
+  .num{
     text-align:right!important;
   }
 
-  .audit-footer{
+  .print-footer{
     display:grid!important;
-    grid-template-columns:1fr 43mm!important;
-    height:46mm!important;
-    min-height:46mm!important;
-    border-left:1.5px solid #111!important;
-    border-right:1.5px solid #111!important;
-    border-bottom:1.5px solid #111!important;
+    grid-template-columns:1fr 52mm!important;
+    height:29mm!important;
+    border:1px solid #000!important;
+    border-top:0!important;
   }
 
-  .audit-number-guide{
-    align-self:end!important;
-    margin:0 5mm 6mm 5mm!important;
-    border:1px solid #9ca3af!important;
-    padding:4mm!important;
-    font-size:16px!important;
+  .print-number-box{
+    display:flex!important;
+    align-items:center!important;
+    padding-left:5mm!important;
+    gap:4mm!important;
+    border-right:1px solid #000!important;
+  }
+
+  .print-number-box span{
+    font-size:18px!important;
     font-weight:900!important;
-    letter-spacing:3.2mm!important;
-    color:#111!important;
+    color:#5f6673!important;
   }
 
-  .audit-sign-box{
-    border-left:1.5px solid #111!important;
-    font-size:7px!important;
+  .print-sign-box{
+    display:grid!important;
+    grid-template-rows:5mm 6mm 13mm 5mm!important;
   }
 
-  .audit-sign-title{
-    height:6mm!important;
+  .print-sign-title{
     text-align:center!important;
-    font-weight:900!important;
-    border-bottom:1px solid #111!important;
-    padding:1mm!important;
     font-size:7px!important;
+    font-weight:900!important;
+    border-bottom:1px solid #000!important;
   }
 
-  .audit-sign-grid{
+  .print-sign-grid{
     display:grid!important;
     grid-template-columns:1fr 1fr 1fr!important;
-    border-bottom:1px solid #111!important;
+    border-bottom:1px solid #000!important;
   }
 
-  .audit-sign-grid > div{
-    border-right:1px solid #111!important;
+  .print-sign-grid div{
+    font-size:6.5px!important;
+    text-align:center!important;
+    border-right:1px solid #000!important;
+    font-weight:900!important;
   }
 
-  .audit-sign-grid > div:last-child{
+  .print-sign-grid div:last-child{
     border-right:0!important;
   }
 
-  .audit-sign-role{
-    height:6mm!important;
-    text-align:center!important;
+  .print-sign-empty{
+    display:grid!important;
+    grid-template-columns:1fr 1fr 1fr!important;
+    border-bottom:1px solid #000!important;
+  }
+
+  .print-sign-empty div{
+    border-right:1px solid #000!important;
+  }
+
+  .print-sign-empty div:last-child{
+    border-right:0!important;
+  }
+
+  .print-time-row{
+    display:grid!important;
+    grid-template-columns:1fr 18mm!important;
+  }
+
+  .print-time-row div{
+    font-size:7px!important;
     font-weight:900!important;
-    border-bottom:1px solid #111!important;
-    padding:1mm!important;
-    font-size:6px!important;
-  }
-
-  /* semua area tanda tangan kosong */
-  .audit-sign-space{
-    height:26mm!important;
     text-align:center!important;
-    padding:0!important;
-    font-size:6px!important;
+    border-right:1px solid #000!important;
   }
 
-  .audit-sign-space b,
-  .audit-sign-space span{
-    display:none!important;
-  }
-
-  .audit-time-count{
-    height:8mm!important;
-    padding:1mm!important;
-    text-align:right!important;
-    font-size:6px!important;
-    line-height:1.15!important;
-    border-top:0!important;
+  .print-time-row div:last-child{
+    border-right:0!important;
   }
 }
 
-
-/* PRINT ONE PAGE FINAL CLEAN */
-@media print{
-  .no-print,
-  .card.no-print,
-  .resume-toolbar,
-  .topbar,
-  .nav,
-  .btn,
-  button,
-  input,
-  select,
-  textarea{
-    display:none!important;
-    height:0!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    overflow:hidden!important;
-  }
-
-  .card:not(.audit-card){
-    display:none!important;
-    height:0!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-  }
-
-  .audit-card{
-    display:block!important;
-    width:200mm!important;
-    max-width:200mm!important;
-    min-height:0!important;
-    height:auto!important;
-    margin:0 auto!important;
-    padding:0!important;
-    page-break-after:always!important;
-    break-after:page!important;
-    page-break-inside:avoid!important;
-    break-inside:avoid!important;
-    overflow:hidden!important;
-  }
-
-  .audit-card:last-child{
-    page-break-after:auto!important;
-    break-after:auto!important;
-  }
-
-  .audit-sheet{
-    width:200mm!important;
-    max-width:200mm!important;
-    min-height:0!important;
-    height:auto!important;
-    margin:0 auto!important;
-    padding:0!important;
-    overflow:hidden!important;
-  }
-
-  .audit-form-title{
-    height:7mm!important;
-    font-size:12px!important;
-  }
-
-  .audit-header-table{
-    height:26mm!important;
-  }
-
-  .audit-h-row{
-    height:6.5mm!important;
-    min-height:6.5mm!important;
-  }
-
-  .audit-main-table th,
-  .audit-main-table td{
-    height:6.4mm!important;
-    min-height:6.4mm!important;
-    padding:0.65mm!important;
-    font-size:6.5px!important;
-    line-height:1.05!important;
-  }
-
-  .audit-main-table th{
-    font-size:6.4px!important;
-  }
-
-  .audit-footer{
-    height:36mm!important;
-    min-height:36mm!important;
-  }
-
-  .audit-number-guide{
-    margin:0 5mm 4mm 5mm!important;
-    padding:3mm!important;
-    font-size:15px!important;
-  }
-
-  .audit-sign-title{
-    height:5mm!important;
-  }
-
-  .audit-sign-role{
-    height:5mm!important;
-  }
-
-  .audit-sign-space{
-    height:20mm!important;
-  }
-
-  .audit-sign-space b,
-  .audit-sign-space span{
-    display:none!important;
-  }
-
-  .audit-time-count{
-    height:6mm!important;
-    font-size:5.8px!important;
-  }
+/* FIX INPUT HEADER ONLY - FORCE HORIZONTAL */
+.input-list-header,
+.span-12.input-list-header{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  display:grid !important;
+  grid-template-columns:42px minmax(180px,1fr) 90px 90px 60px 90px !important;
+  gap:8px !important;
+  align-items:center !important;
+  padding:8px 12px !important;
+  margin:8px 0 8px 0 !important;
+  border-radius:12px !important;
+  background:#e5e7eb !important;
+  color:#374151 !important;
+  font-size:12px !important;
+  font-weight:900 !important;
+  box-sizing:border-box !important;
 }
 
-/* V1.2.1 - save button mobile bottom */
-.save-bottom{
-  position:sticky;
-  bottom:0;
-  z-index:20;
-  padding:10px 0;
-  background:linear-gradient(to top, rgba(245,247,251,1), rgba(245,247,251,.86));
+.input-list-header > div{
+  display:block !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  line-height:1.2 !important;
 }
 
-.save-full{
-  width:100%;
-  padding:15px 18px;
-  border-radius:16px;
-  font-size:16px;
+.input-list-header > div:nth-child(1){
+  text-align:center !important;
 }
 
-.nowrap{
-  flex-wrap:nowrap;
-}
-
-.ng-row{
-  background:#fef2f2;
-}
-
-.ok-row{
-  background:#f0fdf4;
-}
-
-.ng-note{
-  background:#fff7ed;
-  border:1px solid #fdba74;
-  border-radius:10px;
-  padding:7px 9px;
-  margin-top:6px;
-  color:#9a3412;
-  font-size:13px;
+.input-list-header > div:nth-child(3),
+.input-list-header > div:nth-child(4),
+.input-list-header > div:nth-child(5),
+.input-list-header > div:nth-child(6){
+  text-align:center !important;
 }
 
 @media(max-width:760px){
-  .save-bottom{
-    position:sticky;
-    bottom:0;
-    margin:0 -10px;
-    padding:10px;
-  }
-}
-
-/* V1.2.2 - input header and admin master authority */
-.input-list-header{
-  grid-column:1 / -1;
-  width:100%;
-  display:grid;
-  grid-template-columns:34px minmax(160px,1fr) 76px 76px 42px 72px;
-  gap:8px;
-  align-items:center;
-  padding:8px 12px;
-  margin:0 0 8px 0;
-  border-radius:12px;
-  background:#e5e7eb;
-  color:#374151;
-  font-size:12px;
-  font-weight:900;
-}
-
-@media(max-width:760px){
-  .input-list-header{
-    position:sticky;
-    top:112px;
-    z-index:8;
-    grid-template-columns:30px minmax(110px,1fr) 58px 58px 36px 48px;
-    gap:5px;
-    padding:7px 8px;
-    font-size:10px;
-  }
-}
-
-/* V1.2.3 - modern login */
-.login-modern{
-  min-height:100vh;
-  display:grid;
-  place-items:center;
-  padding:20px;
-  background:
-    radial-gradient(circle at top left, rgba(37,99,235,.16), transparent 34%),
-    linear-gradient(135deg,#eef4ff 0%,#f8fafc 48%,#eef2ff 100%);
-}
-
-.login-shell{
-  width:min(920px,100%);
-  display:grid;
-  grid-template-columns:1.1fr .9fr;
-  gap:18px;
-  align-items:stretch;
-}
-
-.login-hero{
-  border-radius:26px;
-  padding:28px;
-  color:#fff;
-  background:linear-gradient(135deg,#1d4ed8,#0f172a);
-  box-shadow:0 24px 60px rgba(15,23,42,.18);
-  min-height:360px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
-
-.login-logo{
-  width:58px;
-  height:58px;
-  border-radius:18px;
-  display:grid;
-  place-items:center;
-  background:rgba(255,255,255,.16);
-  border:1px solid rgba(255,255,255,.24);
-  font-weight:900;
-  font-size:22px;
-  margin-bottom:16px;
-}
-
-.login-hero h1{
-  font-size:34px;
-  line-height:1.08;
-  margin:0 0 10px;
-}
-
-.login-hero p{
-  margin:0;
-  color:#dbeafe;
-  max-width:420px;
-}
-
-.login-points{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:22px;
-}
-
-.login-points span{
-  padding:8px 10px;
-  border-radius:999px;
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.18);
-  font-weight:800;
-  font-size:12px;
-}
-
-.login-card{
-  border-radius:26px;
-  padding:26px;
-  box-shadow:0 24px 60px rgba(15,23,42,.12);
-}
-
-.login-card-head h2{
-  margin:0 0 6px;
-  font-size:26px;
-}
-
-.login-btn{
-  width:100%;
-  margin-top:18px;
-  padding:14px;
-  border-radius:14px;
-}
-
-.login-demo{
-  margin-top:14px;
-  font-size:12px;
-  text-align:center;
-}
-
-@media(max-width:760px){
-  .login-modern{
-    padding:14px;
-  }
-
-  .login-shell{
-    grid-template-columns:1fr;
-  }
-
-  .login-hero{
-    min-height:220px;
-    padding:22px;
-  }
-
-  .login-hero h1{
-    font-size:28px;
-  }
-
-  .login-card{
-    padding:20px;
-  }
-}
-
-/* V1.2.5 SAFE - Leader Check mobile full card mode */
-@media(max-width:760px){
-
-  /* Leader check table jadi card per item */
-  .check-page .table-wrap,
-  .card .table-wrap{
-    overflow:visible;
-    border:0;
-    border-radius:0;
-  }
-
-  .check-page table,
-  .card table{
-    border-collapse:separate;
-    border-spacing:0 10px;
-    background:transparent;
-  }
-
-  /* Sembunyikan header tabel di HP */
-  .check-page thead,
-  .card thead{
-    display:none;
-  }
-
-  .check-page tbody,
-  .check-page tr,
-  .check-page td{
-    display:block;
-    width:100%;
-  }
-
-  .check-page tr{
-    background:#fff;
-    border:1px solid #e5e7eb;
-    border-radius:16px;
-    padding:10px;
-    margin-bottom:10px;
-    box-shadow:0 3px 10px rgba(15,23,42,.05);
-  }
-
-  .check-page td{
-    border:0;
-    padding:6px 4px;
-    font-size:13px;
-  }
-
-  .check-page td::before{
-    display:block;
-    font-size:11px;
-    font-weight:900;
-    color:#6b7280;
-    margin-bottom:2px;
-  }
-
-  /* Label kolom sesuai urutan tabel CHECK */
-  .check-page td:nth-child(1)::before{content:"Status";}
-  .check-page td:nth-child(2)::before{content:"FII ID";}
-  .check-page td:nth-child(3)::before{content:"Part";}
-  .check-page td:nth-child(4)::before{content:"Box";}
-  .check-page td:nth-child(5)::before{content:"Fraction";}
-  .check-page td:nth-child(6)::before{content:"Total";}
-  .check-page td:nth-child(7)::before{content:"Catatan NG";}
-
-  /* Status OK/NG dibuat jelas */
-  .check-page td:nth-child(1) .row{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-
-  .check-page td:nth-child(1) .btn{
-    width:100%;
-    padding:10px;
-  }
-
-  /* FII ID dan Part lebih terbaca */
-  .check-page td:nth-child(2){
-    font-size:20px;
-    font-weight:900;
-    color:#111827;
-  }
-
-  .check-page td:nth-child(3){
-    font-weight:800;
-    color:#374151;
-    word-break:break-word;
-  }
-
-  /* Box/Fraction/Total dibuat grid kecil */
-  .check-page td:nth-child(4),
-  .check-page td:nth-child(5),
-  .check-page td:nth-child(6){
-    display:inline-block;
-    width:32%;
-    vertical-align:top;
-    background:#f8fafc;
-    border:1px solid #e5e7eb;
-    border-radius:12px;
-    margin-top:4px;
-    text-align:center;
-    font-weight:900;
-  }
-
-  .check-page td:nth-child(6){
-    color:#1d4ed8;
-  }
-
-  /* Catatan NG */
-  .check-page td:nth-child(7){
-    background:#fff7ed;
-    border:1px solid #fdba74;
-    border-radius:12px;
-    color:#9a3412;
-    margin-top:8px;
-  }
-
-  /* Header STO dan tombol action lebih rapi */
-  .check-page .between{
-    display:block;
-  }
-
-  .check-page .between .row{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:8px;
-    margin-top:10px;
-  }
-
-  .check-page .between .row .btn{
-    width:100%;
+  .input-list-header,
+  .span-12.input-list-header{
+    grid-template-columns:30px minmax(105px,1fr) 58px 58px 38px 54px !important;
+    gap:5px !important;
+    padding:7px 8px !important;
+    font-size:10px !important;
+    margin:6px 0 6px 0 !important;
   }
 }

@@ -83,61 +83,64 @@ export default function Home(){
   const [tagDetails,setTagDetails]=useState<TagDetail[]>(sampleTagDetails);
   const [stos,setStos]=useState<StoHeader[]>([]);
   const [user,setUser]=useState<User|null>(null);
-  const [masterLoaded,setMasterLoaded]=useState(false); const [menu,setMenu]=useState<Menu>('DASHBOARD'); const [stosLoaded,setStosLoaded]=useState(false);
+  const [masterLoaded,setMasterLoaded]=useState(false); const [menu,setMenu]=useState<Menu>('DASHBOARD'); const [dataLoaded,setDataLoaded]=useState(false); const [stosLoaded,setStosLoaded]=useState(false);
 
-  useEffect(()=>{ const loadedUsers=load('users',sampleUsers).map((u:any)=>({...u,password:u.password||'1234',signatureName:u.signatureName||u.fullName,active:u.active!==false})); setUsers(loadedUsers); setParts(load('parts',sampleParts)); setTags(load('tags',sampleTags)); setTagDetails(load('tagDetails',sampleTagDetails)); setStos(load('stos',[])); const u=load<User|null>('session',null); setUser(u ? ({...u,password:(u as any).password||'1234',signatureName:(u as any).signatureName||u.fullName,active:u.active!==false} as User) : null); },[]);
-  useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]); useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]);
   useEffect(()=>{
-    fetch('/api/master-sto')
-      .then(r=>r.json())
-      .then(j=>{
-        if(j.ok){
-          if(j.parts && j.parts.length>0) setParts(j.parts);
-          if(j.tags && j.tags.length>0) setTags(j.tags);
-          if(j.tagDetails && j.tagDetails.length>0) setTagDetails(j.tagDetails);
-        }
-        setMasterLoaded(true);
-      })
-      .catch(()=>{
-        setMasterLoaded(true);
-      });
+    async function initData(){
+      try{
+        const [usersRes, masterRes, stosRes] = await Promise.all([
+          fetch('/api/users').then(r=>r.json()).catch(()=>({ok:false,users:[]})),
+          fetch('/api/master-sto').then(r=>r.json()).catch(()=>({ok:false,parts:[],tags:[],tagDetails:[]})),
+          fetch('/api/stos').then(r=>r.json()).catch(()=>({ok:false,stos:[]}))
+        ]);
+
+        setUsers(usersRes.ok ? (usersRes.users || []) : []);
+
+        setParts(masterRes.ok ? (masterRes.parts || []) : []);
+        setTags(masterRes.ok ? (masterRes.tags || []) : []);
+        setTagDetails(masterRes.ok ? (masterRes.tagDetails || []) : []);
+
+        setStos(stosRes.ok ? (stosRes.stos || []) : []);
+
+        const u=load<User|null>('session',null);
+        setUser(u ? ({
+          ...u,
+          password:(u as any).password||'1234',
+          signatureName:(u as any).signatureName||u.fullName,
+          active:u.active!==false
+        } as User) : null);
+      }finally{
+        setDataLoaded(true);
+      }
+    }
+
+    initData();
   },[]);
+  useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]);
+ useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
 
+  
   useEffect(()=>{
-    if(!masterLoaded) return;
+    if(!dataLoaded) return;
 
     fetch('/api/master-sto',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({parts,tags,tagDetails})
     }).catch(()=>{});
-  },[masterLoaded,parts,tags,tagDetails]);
+  },[dataLoaded,parts,tags,tagDetails]);
 
   useEffect(()=>{
-    fetch('/api/stos')
-      .then(r=>r.json())
-      .then(j=>{
-        if(j.ok && Array.isArray(j.stos) && j.stos.length>0){
-          setStos(j.stos);
-        }
-        setStosLoaded(true);
-      })
-      .catch(()=>{
-        setStosLoaded(true);
-      });
-  },[]);
-
-  useEffect(()=>{
-    if(!stosLoaded) return;
+    if(!dataLoaded) return;
 
     fetch('/api/stos',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({stos})
     }).catch(()=>{});
-  },[stosLoaded,stos]);
- useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
+  },[dataLoaded,stos]);
 
+  if(!dataLoaded) return <div className="login"><div className="card"><h2>Loading data STO dari Neon...</h2></div></div>;
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
 
   return <main className="app">
@@ -660,7 +663,7 @@ function CheckSto({user,stos,setStos}:{user:User,stos:StoHeader[],setStos:(s:Sto
       <div className="between">
         <div>
           <b>{sto.tagNo}</b> • {sto.creatorName} • {sto.details.length} item
-          <div className="sub">{sto.stoNo} • {sto.stoDate} • Waktu {sto.durationHour||0}</div>
+          <div className="sub">{sto.stoNo} • {sto.stoDate} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
         </div>
         <div className="row">
           <button className="btn green" onClick={()=>checkAll(sto)}>Check OK Per Tag</button>
@@ -750,7 +753,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
         'AREA':p?.area||s.area,
         'LOKASI & NO RACK':p?.rackNo||'',
         'DEPT':p?.dept||'',
-        'WAKTU':s.durationHour||0,
+        'WAKTU':Math.round(((Number(s.durationHour)||0)*3600)/Math.max((s.details||[]).length,1)),
         'TAG':s.tagNo,
         'PIC':s.creatorName,
         'BOX':d.boxQty,
@@ -780,9 +783,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
   };
 
   const doPrintOne=(sto:StoHeader)=>{
-    setPrintStoId(sto.stoId);
-    setPrintMode('ONE');
-    setTimeout(()=>window.print(),200);
+    window.open(`/print?stoId=${encodeURIComponent(sto.stoId)}`,'_blank');
   };
 
   const doPrintMass=()=>{
@@ -791,16 +792,16 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
       alert(`Tidak ada data STO untuk tanggal ${fmtDate(printDate)}`);
       return;
     }
-
-    setPrintStoId('');
-    setPrintMode('MASS');
-    setTimeout(()=>window.print(),200);
+    window.open(`/print?date=${encodeURIComponent(printDate)}`,'_blank');
   };
 
   useEffect(()=>{
     const cleanup=()=>{
       setPrintMode('NONE');
       setPrintStoId('');
+      document.body.classList.remove('print-one-mode');
+      document.body.classList.remove('print-mass-mode');
+      document.querySelectorAll('.resume-card').forEach(el=>el.classList.remove('print-force-show'));
     };
 
     window.addEventListener('afterprint', cleanup);
@@ -834,20 +835,19 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
 
       return <div
         key={sto.stoId}
+        data-sto-id={sto.stoId}
         className={`card span-12 resume-card ${isDateTarget?'print-date-target':''} ${isSingleTarget?'print-single-target':''}`}
       >
         <div className="between no-print">
           <div>
             <b>{sto.stoNo}</b> <span className={`badge ${String(sto.status).toLowerCase()}`}>{sto.status}</span>
-            <div className="sub">{fmtDate(sto.stoDate)} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {sto.durationHour||0}</div>
+            <div className="sub">{fmtDate(sto.stoDate)} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
           </div>
           <div className="row">
             <button className="btn" onClick={()=>doPrintOne(sto)}>Print</button>
             <button className="btn red" onClick={()=>deleteSto(sto)}>Hapus</button>
           </div>
         </div>
-
-        <AuditPrint sto={sto} parts={parts}/>
       </div>
     })}
   </div>
@@ -871,12 +871,13 @@ function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
 
   const firstDetail:any = sto.details?.[0];
   const firstPart = firstDetail ? parts.find(p=>p.partNo===firstDetail.partNo) : undefined;
-  const location = firstPart?.rackNo || '';
+
   const area = sto.area || firstPart?.area || '';
+  const location = firstPart?.rackNo || '';
 
-  const rows:any[]=[...(sto.details||[])];
+  const rows:any[] = [...(sto.details||[])];
 
-  while(rows.length<23){
+  while(rows.length < 23){
     rows.push({
       id:`EMPTY-${rows.length}`,
       partNo:'',
@@ -889,101 +890,120 @@ function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
     });
   }
 
-  return <div className="audit-a4">
-    <table className="audit-a4-table">
-      <tbody>
-        <tr>
-          <th colSpan={10} className="a4-title">STOCK TAKING TAG</th>
-        </tr>
+  const timeOfCount = sto.durationHour !== undefined && sto.durationHour !== null
+    ? `${sto.durationHour} Jam`
+    : '-';
 
-        <tr>
-          <th className="a4-label">DATE</th>
-          <td colSpan={7}>{fmtDate(sto.stoDate)}</td>
-          <th className="a4-count-label">NAME OF COUNT :</th>
-          <td className="a4-count-name">{sto.creatorName}</td>
-        </tr>
+  return <div className="print-a4-page">
+    <div className="print-title">STOCK TAKING TAG</div>
 
-        <tr>
-          <th className="a4-label">AREA</th>
-          <td colSpan={9}>{area}</td>
-        </tr>
+    <div className="print-head">
+      <div className="print-info">
+        <div className="print-info-row">
+          <div className="print-label">DATE</div>
+          <div>{fmtDate(sto.stoDate)}</div>
+        </div>
+        <div className="print-info-row">
+          <div className="print-label">AREA</div>
+          <div>{area}</div>
+        </div>
+        <div className="print-info-row">
+          <div className="print-label">TAG NUMBER</div>
+          <div>{sto.tagNo}</div>
+        </div>
+        <div className="print-info-row">
+          <div className="print-label">LOCATION OR<br/>RACK NUMBER</div>
+          <div>{location}</div>
+        </div>
+      </div>
 
-        <tr>
-          <th className="a4-label">TAG NUMBER</th>
-          <td colSpan={9}>{sto.tagNo}</td>
-        </tr>
+      <div className="print-count-name">
+        <div className="print-count-label">NAME OF COUNT :</div>
+        <div className="print-count-value">{sto.creatorName}</div>
+      </div>
+    </div>
 
-        <tr>
-          <th className="a4-label">LOCATION OR<br/>RACK NUMBER</th>
-          <td colSpan={9}>{location}</td>
-        </tr>
-
+    <table className="print-table">
+      <thead>
         <tr>
           <th rowSpan={2}>NO</th>
           <th rowSpan={2}>PART NUMBER</th>
           <th rowSpan={2}>FII ID</th>
           <th rowSpan={2}>PART NAME</th>
-          <th>QTY/BOX</th>
-          <th>JUMLAH BOX</th>
-          <th>TOTAL</th>
-          <th>FRACTION</th>
-          <th>GRAND TOTAL</th>
+          <th>QTY/BOX<br/><span>(a)</span></th>
+          <th>JUMLAH BOX<br/><span>(b)</span></th>
+          <th>TOTAL<br/><span>(a) × (b)</span></th>
+          <th>FRACTION<br/><span>(d)</span></th>
+          <th>GRAND TOTAL<br/><span>(c) + (d)</span></th>
           <th>Rack Detail<br/>Column-Rows</th>
         </tr>
-
         <tr>
-          <th>(a)</th>
-          <th>(b)</th>
-          <th>(a) × (b)</th>
-          <th>(d)</th>
-          <th>(c) + (d)</th>
+          <th>pcs</th>
+          <th>box</th>
+          <th>pcs</th>
+          <th>pcs</th>
+          <th>pcs</th>
           <th></th>
         </tr>
+      </thead>
 
+      <tbody>
         {rows.slice(0,23).map((d:any,i:number)=>{
           const p=parts.find(x=>x.partNo===d.partNo);
-          const totalBox = Number(d.qtyPerBox||0) * Number(d.boxQty||0);
+          const qtyPerBox=Number(d.qtyPerBox||0);
+          const boxQty=Number(d.boxQty||0);
+          const fractionQty=Number(d.fractionQty||0);
+          const grandTotal=Number(d.grandTotal||0);
+          const total=qtyPerBox*boxQty;
 
-          return <tr key={`${d.id}-${i}`} className="a4-item-row">
+          return <tr key={`${d.id}-${i}`}>
             <td className="center">{i+1}</td>
             <td>{d.partNo}</td>
             <td className="center">{d.fiiId}</td>
             <td>{d.partName}</td>
-            <td className="num">{d.qtyPerBox ? Number(d.qtyPerBox).toLocaleString('id-ID') : ''}</td>
-            <td className="num">{d.boxQty ? Number(d.boxQty).toLocaleString('id-ID') : ''}</td>
-            <td className="num">{totalBox ? totalBox.toLocaleString('id-ID') : ''}</td>
-            <td className="num">{d.fractionQty ? Number(d.fractionQty).toLocaleString('id-ID') : ''}</td>
-            <td className="num">{d.grandTotal ? Number(d.grandTotal).toLocaleString('id-ID') : ''}</td>
+            <td className="num">{qtyPerBox ? qtyPerBox.toLocaleString('id-ID') : ''}</td>
+            <td className="num">{boxQty ? boxQty.toLocaleString('id-ID') : ''}</td>
+            <td className="num">{total ? total.toLocaleString('id-ID') : ''}</td>
+            <td className="num">{fractionQty ? fractionQty.toLocaleString('id-ID') : ''}</td>
+            <td className="num">{grandTotal ? grandTotal.toLocaleString('id-ID') : ''}</td>
             <td>{p?.rackNo || ''}</td>
           </tr>
         })}
-
-        <tr>
-          <td colSpan={7} rowSpan={4} className="a4-number-box">
-            <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
-            <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
-          </td>
-          <th colSpan={3} className="a4-sign-title">SIGN</th>
-        </tr>
-
-        <tr>
-          <th>Auditor</th>
-          <th>Leader Team</th>
-          <th>Count</th>
-        </tr>
-
-        <tr>
-          <td className="a4-sign-cell"></td>
-          <td className="a4-sign-cell"></td>
-          <td className="a4-sign-cell"></td>
-        </tr>
-
-        <tr>
-          <th colSpan={2}>Time of Count :</th>
-          <td className="center">{sto.durationHour ? `${sto.durationHour} Jam` : '-'}</td>
-        </tr>
       </tbody>
     </table>
+
+    <div className="print-footer">
+      <div className="print-number-box">
+        <span>0</span>
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>
+        <span>5</span>
+        <span>6</span>
+        <span>7</span>
+        <span>8</span>
+        <span>9</span>
+      </div>
+
+      <div className="print-sign-box">
+        <div className="print-sign-title">SIGN</div>
+        <div className="print-sign-grid">
+          <div>Auditor</div>
+          <div>Leader Team</div>
+          <div>Count</div>
+        </div>
+        <div className="print-sign-empty">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+        <div className="print-time-row">
+          <div>Time of Count :</div>
+          <div>{timeOfCount}</div>
+        </div>
+      </div>
+    </div>
   </div>
 }
 
