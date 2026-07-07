@@ -86,7 +86,7 @@ export default function Home(){
   const [menu,setMenu]=useState<Menu>('DASHBOARD');
 
   useEffect(()=>{ const loadedUsers=load('users',sampleUsers).map((u:any)=>({...u,password:u.password||'1234',signatureName:u.signatureName||u.fullName,active:u.active!==false})); setUsers(loadedUsers); setParts(load('parts',sampleParts)); setTags(load('tags',sampleTags)); setTagDetails(load('tagDetails',sampleTagDetails)); setStos(load('stos',[])); const u=load<User|null>('session',null); setUser(u ? ({...u,password:(u as any).password||'1234',signatureName:(u as any).signatureName||u.fullName,active:u.active!==false} as User) : null); },[]);
-  useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]);
+  useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]); useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
 
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
 
@@ -94,21 +94,84 @@ export default function Home(){
     <div className="topbar no-print">
       <div className="brand"><div><div className="logo">STO Web App</div><div className="sub">Mobile-first Stock Taking Tag</div></div><div className="row"><span className="pill">{user.fullName} / {user.role}</span><button className="btn small red" onClick={()=>{localStorage.removeItem(key('session')); setUser(null)}}>Logout</button></div></div>
       <div className="nav">
-        {(['DASHBOARD','INPUT','CHECK','RESUME','MASTER'] as Menu[]).map(m=><button key={m} className={menu===m?'active':''} onClick={()=>setMenu(m)}>{m}</button>)}
+        {((user.role==='ADMIN'?['DASHBOARD','INPUT','CHECK','RESUME','MASTER']:['DASHBOARD','INPUT','CHECK','RESUME']) as Menu[]).map(m=><button key={m} className={menu===m?'active':''} onClick={()=>setMenu(m)}>{m}</button>)}
       </div>
     </div>
     {menu==='DASHBOARD' && <Dashboard tags={tags} stos={stos}/>} 
     {menu==='INPUT' && <InputSto user={user} parts={parts} tags={tags} tagDetails={tagDetails} stos={stos} setStos={setStos}/>} 
     {menu==='CHECK' && <CheckSto user={user} stos={stos} setStos={setStos}/>} 
     {menu==='RESUME' && <Resume user={user} parts={parts} stos={stos} setStos={setStos}/>} 
-    {menu==='MASTER' && <Master parts={parts} setParts={setParts} tags={tags} setTags={setTags} tagDetails={tagDetails} setTagDetails={setTagDetails} users={users} setUsers={setUsers}/>} 
+    {menu==='MASTER' && user.role==='ADMIN' && <Master parts={parts} setParts={setParts} tags={tags} setTags={setTags} tagDetails={tagDetails} setTagDetails={setTagDetails} users={users} setUsers={setUsers}/>}
+    {menu==='MASTER' && user.role!=='ADMIN' && <div className="card span-12"><h2>Akses Ditolak</h2><p className="muted">Menu Master hanya untuk ADMIN.</p></div>} 
   </main>;
 }
 
+
 function Login({users,onLogin}:{users:User[],onLogin:(u:User)=>void}){
-  const [username,setUsername]=useState('agung');
-  const [password,setPassword]=useState('1234');
-  return <div className="login"><div className="card"><h1>Login STO</h1><p className="muted">Demo login: <b>agung</b>, <b>leader</b>, atau <b>admin</b>. Password default: <b>1234</b>.</p><label>Username</label><input value={username} onChange={e=>setUsername(e.target.value)} placeholder="username"/><label>Password</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="password"/><br/><br/><button className="btn primary" style={{width:'100%'}} onClick={()=>{const u=users.find(x=>x.username.toLowerCase()===username.toLowerCase() && x.password===password && x.active); if(u) onLogin(u); else alert('Username / password salah atau user tidak aktif')}}>Masuk</button></div></div>
+  const [username,setUsername]=useState('');
+  const [password,setPassword]=useState('');
+
+  const submit=()=>{
+    const uname=username.trim().toLowerCase();
+    const pass=password.trim();
+
+    const u=users.find((x:any)=>
+      String(x.username||'').trim().toLowerCase()===uname &&
+      String(x.password||'1234').trim()===pass &&
+      x.active!==false
+    );
+
+    if(u){
+      onLogin({
+        ...u,
+        username:String((u as any).username||'').trim(),
+        password:String((u as any).password||'1234').trim(),
+        signatureName:(u as any).signatureName || u.fullName,
+        active:(u as any).active!==false
+      } as User);
+    }else{
+      alert('Username / password salah atau user tidak aktif');
+    }
+  };
+
+  return <div className="login login-modern">
+    <div className="login-shell">
+      <div className="login-hero">
+        <div className="login-logo">PC</div>
+        <h1>STOCK TAKING PC</h1>
+      </div>
+
+      <div className="card login-card">
+        <div className="login-card-head">
+          <div>
+            <h2>Login STO</h2>
+            
+          </div>
+        </div>
+
+        <label>Username</label>
+        <input
+          value={username}
+          onChange={e=>setUsername(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter') submit()}}
+          placeholder="Masukkan username"
+          autoComplete="username"
+        />
+
+        <label>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={e=>setPassword(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter') submit()}}
+          placeholder="Masukkan password"
+          autoComplete="current-password"
+        />
+
+        <button className="btn primary login-btn" onClick={submit}>Masuk</button>
+      </div>
+    </div>
+  </div>
 }
 
 function Dashboard({tags,stos}:{tags:Tag[],stos:StoHeader[]}){ const counted=stos.filter(s=>s.status==='COUNTED'||s.status==='CHECKED'||s.status==='CLOSED').length; const checked=stos.filter(s=>s.status==='CHECKED'||s.status==='CLOSED').length; return <div className="grid"><Stat t="Total Tag" v={tags.length}/><Stat t="Sudah Count" v={counted}/><Stat t="Belum Count" v={Math.max(tags.length-counted,0)}/><Stat t="Sudah Check Leader" v={checked}/></div> }
@@ -294,6 +357,15 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
       </div>
     </div>
 
+
+    <div className="input-list-header no-print span-12">
+      <div>No</div>
+      <div>FII / Part</div>
+      <div>Box</div>
+      <div>Fraction</div>
+      <div>Calc</div>
+      <div>Total</div>
+    </div>
     <div className="span-12">
       {details.map((d,i)=><StoItem key={`${d.id}-${i}`} index={i+1} d={d} mode={mode} update={update}/>)}
     </div>
@@ -1008,10 +1080,10 @@ function UserManagement({users,setUsers}:{users:User[],setUsers:(u:User[])=>void
   const [form,setForm]=useState<User>(empty);
   const edit=(u:User)=>setForm({...u,password:u.password||'1234'});
   const saveUser=()=>{
-    if(!form.username || !form.fullName){ alert('Username dan Full Name wajib diisi'); return; }
-    const dup=users.some(u=>u.username.toLowerCase()===form.username.toLowerCase() && u.id!==form.id);
+    if(!String(form.username||'').trim() || !String(form.fullName||'').trim()){ alert('Username dan Full Name wajib diisi'); return; }
+    const dup=users.some(u=>String(u.username||'').trim().toLowerCase()===String(form.username||'').trim().toLowerCase() && u.id!==form.id);
     if(dup){ alert('Username sudah dipakai'); return; }
-    const payload={...form,id:form.id||uid('U'),signatureName:form.signatureName||form.fullName,password:form.password||'1234'};
+    const payload={...form,id:form.id||uid('U'),username:String(form.username||'').trim(),password:String(form.password||'1234').trim(),fullName:String(form.fullName||'').trim(),signatureName:String(form.signatureName||form.fullName||'').trim(),active:form.active!==false};
     setUsers(form.id ? users.map(u=>u.id===form.id?payload:u) : [payload,...users]);
     setForm(empty);
   };
