@@ -83,10 +83,36 @@ export default function Home(){
   const [tagDetails,setTagDetails]=useState<TagDetail[]>(sampleTagDetails);
   const [stos,setStos]=useState<StoHeader[]>([]);
   const [user,setUser]=useState<User|null>(null);
-  const [menu,setMenu]=useState<Menu>('DASHBOARD'); const [stosLoaded,setStosLoaded]=useState(false);
+  const [masterLoaded,setMasterLoaded]=useState(false); const [menu,setMenu]=useState<Menu>('DASHBOARD'); const [stosLoaded,setStosLoaded]=useState(false);
 
   useEffect(()=>{ const loadedUsers=load('users',sampleUsers).map((u:any)=>({...u,password:u.password||'1234',signatureName:u.signatureName||u.fullName,active:u.active!==false})); setUsers(loadedUsers); setParts(load('parts',sampleParts)); setTags(load('tags',sampleTags)); setTagDetails(load('tagDetails',sampleTagDetails)); setStos(load('stos',[])); const u=load<User|null>('session',null); setUser(u ? ({...u,password:(u as any).password||'1234',signatureName:(u as any).signatureName||u.fullName,active:u.active!==false} as User) : null); },[]);
   useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]); useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]);
+  useEffect(()=>{
+    fetch('/api/master-sto')
+      .then(r=>r.json())
+      .then(j=>{
+        if(j.ok){
+          if(j.parts && j.parts.length>0) setParts(j.parts);
+          if(j.tags && j.tags.length>0) setTags(j.tags);
+          if(j.tagDetails && j.tagDetails.length>0) setTagDetails(j.tagDetails);
+        }
+        setMasterLoaded(true);
+      })
+      .catch(()=>{
+        setMasterLoaded(true);
+      });
+  },[]);
+
+  useEffect(()=>{
+    if(!masterLoaded) return;
+
+    fetch('/api/master-sto',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({parts,tags,tagDetails})
+    }).catch(()=>{});
+  },[masterLoaded,parts,tags,tagDetails]);
+
   useEffect(()=>{
     fetch('/api/stos')
       .then(r=>r.json())
