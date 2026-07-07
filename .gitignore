@@ -14,3 +14,4 @@ fix_*.py
 quick_fix.py
 reset_*.py
 init_neon_users.mjs
+init_neon_stos.mjs

@@ -83,10 +83,34 @@ export default function Home(){
   const [tagDetails,setTagDetails]=useState<TagDetail[]>(sampleTagDetails);
   const [stos,setStos]=useState<StoHeader[]>([]);
   const [user,setUser]=useState<User|null>(null);
-  const [menu,setMenu]=useState<Menu>('DASHBOARD');
+  const [menu,setMenu]=useState<Menu>('DASHBOARD'); const [stosLoaded,setStosLoaded]=useState(false);
 
   useEffect(()=>{ const loadedUsers=load('users',sampleUsers).map((u:any)=>({...u,password:u.password||'1234',signatureName:u.signatureName||u.fullName,active:u.active!==false})); setUsers(loadedUsers); setParts(load('parts',sampleParts)); setTags(load('tags',sampleTags)); setTagDetails(load('tagDetails',sampleTagDetails)); setStos(load('stos',[])); const u=load<User|null>('session',null); setUser(u ? ({...u,password:(u as any).password||'1234',signatureName:(u as any).signatureName||u.fullName,active:u.active!==false} as User) : null); },[]);
-  useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]); useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]); useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
+  useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]); useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]);
+  useEffect(()=>{
+    fetch('/api/stos')
+      .then(r=>r.json())
+      .then(j=>{
+        if(j.ok && Array.isArray(j.stos) && j.stos.length>0){
+          setStos(j.stos);
+        }
+        setStosLoaded(true);
+      })
+      .catch(()=>{
+        setStosLoaded(true);
+      });
+  },[]);
+
+  useEffect(()=>{
+    if(!stosLoaded) return;
+
+    fetch('/api/stos',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({stos})
+    }).catch(()=>{});
+  },[stosLoaded,stos]);
+ useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
 
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
 
