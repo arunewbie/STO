@@ -86,7 +86,7 @@ export default function Home(){
   const [menu,setMenu]=useState<Menu>('DASHBOARD');
 
   useEffect(()=>{ const loadedUsers=load('users',sampleUsers).map((u:any)=>({...u,password:u.password||'1234',signatureName:u.signatureName||u.fullName,active:u.active!==false})); setUsers(loadedUsers); setParts(load('parts',sampleParts)); setTags(load('tags',sampleTags)); setTagDetails(load('tagDetails',sampleTagDetails)); setStos(load('stos',[])); const u=load<User|null>('session',null); setUser(u ? ({...u,password:(u as any).password||'1234',signatureName:(u as any).signatureName||u.fullName,active:u.active!==false} as User) : null); },[]);
-  useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]); useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
+  useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]); useEffect(()=>{ save('users',users) },[users]); useEffect(()=>{ save('parts',parts) },[parts]); useEffect(()=>{ save('tags',tags) },[tags]); useEffect(()=>{ save('tagDetails',tagDetails) },[tagDetails]); useEffect(()=>{ save('stos',stos) },[stos]); useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
 
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
 
@@ -107,30 +107,43 @@ export default function Home(){
 }
 
 
+
 function Login({users,onLogin}:{users:User[],onLogin:(u:User)=>void}){
   const [username,setUsername]=useState('');
   const [password,setPassword]=useState('');
+  const [loading,setLoading]=useState(false);
 
-  const submit=()=>{
-    const uname=username.trim().toLowerCase();
-    const pass=password.trim();
+  const submit=async()=>{
+    if(loading) return;
 
-    const u=users.find((x:any)=>
-      String(x.username||'').trim().toLowerCase()===uname &&
-      String(x.password||'1234').trim()===pass &&
-      x.active!==false
-    );
+    if(!username.trim() || !password.trim()){
+      alert('Username dan password wajib diisi');
+      return;
+    }
 
-    if(u){
-      onLogin({
-        ...u,
-        username:String((u as any).username||'').trim(),
-        password:String((u as any).password||'1234').trim(),
-        signatureName:(u as any).signatureName || u.fullName,
-        active:(u as any).active!==false
-      } as User);
-    }else{
-      alert('Username / password salah atau user tidak aktif');
+    setLoading(true);
+
+    try{
+      const res=await fetch('/api/login',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          username:username.trim(),
+          password:password.trim()
+        })
+      });
+
+      const j=await res.json();
+
+      if(j.ok && j.user){
+        onLogin(j.user);
+      }else{
+        alert(j.message || 'Username / password salah atau user tidak aktif');
+      }
+    }catch(e:any){
+      alert('Gagal koneksi database. Cek DATABASE_URL / koneksi Neon.');
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -145,7 +158,6 @@ function Login({users,onLogin}:{users:User[],onLogin:(u:User)=>void}){
         <div className="login-card-head">
           <div>
             <h2>Login STO</h2>
-            
           </div>
         </div>
 
@@ -168,7 +180,9 @@ function Login({users,onLogin}:{users:User[],onLogin:(u:User)=>void}){
           autoComplete="current-password"
         />
 
-        <button className="btn primary login-btn" onClick={submit}>Masuk</button>
+        <button className="btn primary login-btn" onClick={submit} disabled={loading}>
+          {loading?'Loading...':'Masuk'}
+        </button>
       </div>
     </div>
   </div>
@@ -1075,20 +1089,207 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
   </div>   
 }
 
+
 function UserManagement({users,setUsers}:{users:User[],setUsers:(u:User[])=>void}){
   const empty:User={id:'',username:'',password:'1234',fullName:'',role:'OPERATOR',defaultArea:'RM',signatureName:'',active:true};
   const [form,setForm]=useState<User>(empty);
-  const edit=(u:User)=>setForm({...u,password:u.password||'1234'});
-  const saveUser=()=>{
-    if(!String(form.username||'').trim() || !String(form.fullName||'').trim()){ alert('Username dan Full Name wajib diisi'); return; }
-    const dup=users.some(u=>String(u.username||'').trim().toLowerCase()===String(form.username||'').trim().toLowerCase() && u.id!==form.id);
-    if(dup){ alert('Username sudah dipakai'); return; }
-    const payload={...form,id:form.id||uid('U'),username:String(form.username||'').trim(),password:String(form.password||'1234').trim(),fullName:String(form.fullName||'').trim(),signatureName:String(form.signatureName||form.fullName||'').trim(),active:form.active!==false};
-    setUsers(form.id ? users.map(u=>u.id===form.id?payload:u) : [payload,...users]);
-    setForm(empty);
+  const [loading,setLoading]=useState(false);
+
+  const refreshUsers=async()=>{
+    const res=await fetch('/api/users');
+    const j=await res.json();
+    if(j.ok && j.users) setUsers(j.users);
   };
-  const resetPass=(u:User)=>{ if(confirm(`Reset password ${u.username} ke 1234?`)) setUsers(users.map(x=>x.id===u.id?{...x,password:'1234'}:x)); };
-  const toggle=(u:User)=>setUsers(users.map(x=>x.id===u.id?{...x,active:!x.active}:x));
-  const remove=(u:User)=>{ if(confirm(`Hapus user ${u.username}?`)) setUsers(users.filter(x=>x.id!==u.id)); };
-  return <div className="card span-12"><h2 className="title">User Management</h2><p className="muted">Admin bisa tambah/edit user, role, default area, status aktif, dan reset password.</p><div className="grid"><div className="span-3"><label>Username</label><input value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div><div className="span-3"><label>Password</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div><div className="span-3"><label>Full Name</label><input value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value,signatureName:e.target.value})}/></div><div className="span-3"><label>Role</label><select value={form.role} onChange={e=>setForm({...form,role:e.target.value as any})}><option>ADMIN</option><option>OPERATOR</option><option>LEADER</option></select></div><div className="span-3"><label>Default Area</label><select value={form.defaultArea} onChange={e=>setForm({...form,defaultArea:e.target.value})}><option>RM</option><option>WIP</option><option>FG</option><option>P</option><option>S</option></select></div><div className="span-3"><label>Signature Name</label><input value={form.signatureName||''} onChange={e=>setForm({...form,signatureName:e.target.value})}/></div><div className="span-3"><label>Status</label><select value={form.active?'Y':'N'} onChange={e=>setForm({...form,active:e.target.value==='Y'})}><option value="Y">Active</option><option value="N">Inactive</option></select></div><div className="span-3"><label>Aksi</label><div className="row"><button className="btn green" onClick={saveUser}>{form.id?'Update':'Tambah'}</button><button className="btn" onClick={()=>setForm(empty)}>Clear</button></div></div></div><div className="table-wrap" style={{marginTop:12}}><table><thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Area</th><th>Signature</th><th>Active</th><th>Aksi</th></tr></thead><tbody>{users.map(u=><tr key={u.id}><td>{u.username}</td><td>{u.fullName}</td><td>{u.role}</td><td>{u.defaultArea}</td><td>{u.signatureName||u.fullName}</td><td>{u.active?'Y':'N'}</td><td><div className="row"><button className="btn small" onClick={()=>edit(u)}>Edit</button><button className="btn small ghost" onClick={()=>resetPass(u)}>Reset PW</button><button className="btn small orange" onClick={()=>toggle(u)}>{u.active?'Nonaktif':'Aktifkan'}</button><button className="btn small red" onClick={()=>remove(u)}>Hapus</button></div></td></tr>)}</tbody></table></div></div>
+
+  useEffect(()=>{
+    refreshUsers().catch(()=>{});
+  },[]);
+
+  const edit=(u:User)=>setForm({...u,password:u.password||'1234'});
+
+  const saveUser=async()=>{
+    if(!String(form.username||'').trim() || !String(form.fullName||'').trim()){
+      alert('Username dan Full Name wajib diisi');
+      return;
+    }
+
+    setLoading(true);
+
+    try{
+      const payload={
+        ...form,
+        id:form.id || uid('U'),
+        username:String(form.username||'').trim(),
+        password:String(form.password||'1234').trim(),
+        fullName:String(form.fullName||'').trim(),
+        signatureName:String(form.signatureName||form.fullName||'').trim(),
+        active:form.active!==false
+      };
+
+      const res=await fetch('/api/users',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+
+      const j=await res.json();
+
+      if(!j.ok){
+        alert(j.message || 'Gagal simpan user');
+        return;
+      }
+
+      setUsers(j.users || []);
+      setForm(empty);
+      alert('User tersimpan ke database Neon.');
+    }catch(e:any){
+      alert('Gagal koneksi database saat simpan user.');
+    }finally{
+      setLoading(false);
+    }
+  };
+
+  const resetPass=async(u:User)=>{
+    if(!confirm(`Reset password ${u.username} ke 1234?`)) return;
+
+    const res=await fetch('/api/users',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:u.id,action:'resetPassword'})
+    });
+
+    const j=await res.json();
+
+    if(j.ok) setUsers(j.users || []);
+    else alert(j.message || 'Gagal reset password');
+  };
+
+  const toggle=async(u:User)=>{
+    const res=await fetch('/api/users',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:u.id,action:'toggleActive'})
+    });
+
+    const j=await res.json();
+
+    if(j.ok) setUsers(j.users || []);
+    else alert(j.message || 'Gagal update status');
+  };
+
+  const remove=async(u:User)=>{
+    if(!confirm(`Hapus user ${u.username}?`)) return;
+
+    const res=await fetch(`/api/users?id=${encodeURIComponent(u.id)}`,{
+      method:'DELETE'
+    });
+
+    const j=await res.json();
+
+    if(j.ok) setUsers(j.users || []);
+    else alert(j.message || 'Gagal hapus user');
+  };
+
+  return <div className="card span-12">
+    <h2 className="title">User Management</h2>
+    <p className="muted">Data user tersimpan di Neon PostgreSQL dan dapat dipakai dari komputer maupun HP.</p>
+
+    <div className="grid">
+      <div className="span-3">
+        <label>Username</label>
+        <input value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/>
+      </div>
+
+      <div className="span-3">
+        <label>Password</label>
+        <input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/>
+      </div>
+
+      <div className="span-3">
+        <label>Full Name</label>
+        <input value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value,signatureName:e.target.value})}/>
+      </div>
+
+      <div className="span-3">
+        <label>Role</label>
+        <select value={form.role} onChange={e=>setForm({...form,role:e.target.value as any})}>
+          <option>ADMIN</option>
+          <option>OPERATOR</option>
+          <option>LEADER</option>
+        </select>
+      </div>
+
+      <div className="span-3">
+        <label>Default Area</label>
+        <select value={form.defaultArea} onChange={e=>setForm({...form,defaultArea:e.target.value})}>
+          <option>RM</option>
+          <option>WIP</option>
+          <option>FG</option>
+          <option>P</option>
+          <option>S</option>
+          <option>RAK 1</option>
+          <option>RAK 2</option>
+        </select>
+      </div>
+
+      <div className="span-3">
+        <label>Signature Name</label>
+        <input value={form.signatureName||''} onChange={e=>setForm({...form,signatureName:e.target.value})}/>
+      </div>
+
+      <div className="span-3">
+        <label>Status</label>
+        <select value={form.active?'Y':'N'} onChange={e=>setForm({...form,active:e.target.value==='Y'})}>
+          <option value="Y">Active</option>
+          <option value="N">Inactive</option>
+        </select>
+      </div>
+
+      <div className="span-3">
+        <label>Aksi</label>
+        <div className="row">
+          <button className="btn green" onClick={saveUser} disabled={loading}>
+            {loading?'Saving...':form.id?'Update':'Tambah'}
+          </button>
+          <button className="btn" onClick={()=>setForm(empty)}>Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div className="table-wrap" style={{marginTop:12}}>
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Area</th>
+            <th>Signature</th>
+            <th>Active</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {users.map(u=><tr key={u.id}>
+            <td>{u.username}</td>
+            <td>{u.fullName}</td>
+            <td>{u.role}</td>
+            <td>{u.defaultArea}</td>
+            <td>{u.signatureName||u.fullName}</td>
+            <td>{u.active?'Y':'N'}</td>
+            <td>
+              <div className="row">
+                <button className="btn small" onClick={()=>edit(u)}>Edit</button>
+                <button className="btn small ghost" onClick={()=>resetPass(u)}>Reset PW</button>
+                <button className="btn small orange" onClick={()=>toggle(u)}>{u.active?'Nonaktif':'Aktifkan'}</button>
+                <button className="btn small red" onClick={()=>remove(u)}>Hapus</button>
+              </div>
+            </td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+  </div>
 }
+

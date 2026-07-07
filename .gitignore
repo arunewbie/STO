@@ -1,9 +1,16 @@
 node_modules/
 .next/
 .vercel/
+
+.env
+.env.local
+.env.*.local
+
 *.backup.*
 app/*.backup.*
 lib/*.backup.*
+
 fix_*.py
 quick_fix.py
 reset_*.py
+init_neon_users.mjs
