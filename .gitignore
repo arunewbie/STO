@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.vercel/
+*.backup.*
+app/*.backup.*
+lib/*.backup.*
+fix_*.py
+quick_fix.py
+reset_*.py

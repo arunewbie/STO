@@ -1,5 +1,5 @@
 export type Role = 'ADMIN' | 'OPERATOR' | 'LEADER';
-export type Status = 'DRAFT' | 'COUNTED' | 'CHECKED' | 'CLOSED';
+export type Status = 'DRAFT' | 'COUNTED' | 'REVISION' | 'CHECKED' | 'CLOSED';
 export type ViewMode = 'INPUT' | 'FULL';
 
 export type User = { id:string; username:string; password:string; fullName:string; role:Role; defaultArea:string; signatureName?:string; active:boolean };
