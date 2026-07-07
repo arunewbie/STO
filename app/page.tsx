@@ -787,12 +787,13 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
   };
 
   const doPrintMass=()=>{
-    const count=stos.filter(s=>dateKey(s.stoDate)===printDate).length;
-    if(count===0){
+    const selected=stos.filter(s=>dateKey(s.stoDate)===printDate);
+    if(selected.length===0){
       alert(`Tidak ada data STO untuk tanggal ${fmtDate(printDate)}`);
       return;
     }
-    window.open(`/print?date=${encodeURIComponent(printDate)}`,'_blank');
+    const ids=selected.map(s=>s.stoId).join(',');
+    window.open(`/print?ids=${encodeURIComponent(ids)}`,'_blank');
   };
 
   useEffect(()=>{

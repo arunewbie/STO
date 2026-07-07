@@ -42,6 +42,8 @@ export default function PrintPage(){
 
   const stoId = params.get('stoId') || '';
   const date = params.get('date') || '';
+  const ids = params.get('ids') || '';
+  const idList = ids ? ids.split(',').filter(Boolean) : [];
 
   useEffect(()=>{
     const getLocalArray=(key:string)=>{
@@ -88,10 +90,11 @@ export default function PrintPage(){
   },[]);
 
   const printList = useMemo(()=>{
+    if(idList.length>0) return stos.filter(s=>idList.includes(String(s.stoId)));
     if(stoId) return stos.filter(s=>s.stoId===stoId);
     if(date) return stos.filter(s=>dateKey(s.stoDate)===date);
     return stos;
-  },[stos,stoId,date]);
+  },[stos,stoId,date,ids]);
 
   
   // AUTO PRINT AFTER DATA READY
