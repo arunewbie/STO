@@ -717,7 +717,28 @@ function CheckSto({user,stos,setStos}:{user:User,stos:StoHeader[],setStos:(s:Sto
   </div>
 }
 
+
+
 function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader[],setStos:(s:StoHeader[])=>void}){
+  const [printDate,setPrintDate]=useState(today());
+  const [printMode,setPrintMode]=useState<'NONE'|'ONE'|'MASS'>('NONE');
+  const [printStoId,setPrintStoId]=useState('');
+
+  const dateKey=(v:any)=>{
+    if(!v) return '';
+    if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    const d=new Date(v);
+    if(Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  };
+
+  const fmtDate=(v:any)=>{
+    const key=dateKey(v);
+    if(!key) return '-';
+    const [y,m,d]=key.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   const exportExcel=()=>{
     const rows=stos.flatMap(s=>s.details.map(d=>{
       const p=parts.find(x=>x.partNo===d.partNo);
@@ -735,8 +756,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
         'BOX':d.boxQty,
         'FRACTION':d.fractionQty,
         'CALCULATION NOTE':d.calculationNote,
-        'STATUS':s.status,
-        'REVISION NOTE':(s as any).revisionNote || ''
+        'STATUS':s.status
       }
     }));
 
@@ -759,211 +779,213 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
     }
   };
 
-  return <div className="grid">
-    <div className="card span-12">
+  const doPrintOne=(sto:StoHeader)=>{
+    setPrintStoId(sto.stoId);
+    setPrintMode('ONE');
+    setTimeout(()=>window.print(),200);
+  };
+
+  const doPrintMass=()=>{
+    const count=stos.filter(s=>dateKey(s.stoDate)===printDate).length;
+    if(count===0){
+      alert(`Tidak ada data STO untuk tanggal ${fmtDate(printDate)}`);
+      return;
+    }
+
+    setPrintStoId('');
+    setPrintMode('MASS');
+    setTimeout(()=>window.print(),200);
+  };
+
+  useEffect(()=>{
+    const cleanup=()=>{
+      setPrintMode('NONE');
+      setPrintStoId('');
+    };
+
+    window.addEventListener('afterprint', cleanup);
+    return ()=>window.removeEventListener('afterprint', cleanup);
+  },[]);
+
+  const massCount=stos.filter(s=>dateKey(s.stoDate)===printDate).length;
+
+  return <div className={`grid resume-page print-mode-${printMode.toLowerCase()}`}>
+    <div className="card span-12 no-print">
       <div className="between">
         <div>
           <h2>Resume STO</h2>
-          <p className="muted">Export Excel, print audit, dan hapus transaksi jika diperlukan.</p>
+          <p className="muted">Export Excel, print per tag, print masal per tanggal, dan hapus transaksi.</p>
         </div>
         <button className="btn primary" onClick={exportExcel}>Export Excel</button>
       </div>
+
+      <div className="resume-print-toolbar">
+        <div>
+          <label>Tanggal Print Masal</label>
+          <input type="date" value={printDate} onChange={e=>setPrintDate(e.target.value)}/>
+        </div>
+        <button className="btn green" onClick={doPrintMass}>Print Masal Tanggal ({massCount})</button>
+      </div>
     </div>
 
-    {stos.map(sto=><div className="card span-12" key={sto.stoId}>
-      <div className="between no-print">
-        <div>
-          <b>{sto.stoNo}</b> <span className={`badge ${String(sto.status).toLowerCase()}`}>{sto.status}</span>
-          <div className="sub">{sto.stoDate} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {sto.durationHour||0}</div>
-          {sto.status==='REVISION' && <div className="sub" style={{color:'#b45309'}}>
-            Revisi: {(sto as any).revisionNote || '-'}
-          </div>}
+    {stos.map(sto=>{
+      const isDateTarget=dateKey(sto.stoDate)===printDate;
+      const isSingleTarget=sto.stoId===printStoId;
+
+      return <div
+        key={sto.stoId}
+        className={`card span-12 resume-card ${isDateTarget?'print-date-target':''} ${isSingleTarget?'print-single-target':''}`}
+      >
+        <div className="between no-print">
+          <div>
+            <b>{sto.stoNo}</b> <span className={`badge ${String(sto.status).toLowerCase()}`}>{sto.status}</span>
+            <div className="sub">{fmtDate(sto.stoDate)} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {sto.durationHour||0}</div>
+          </div>
+          <div className="row">
+            <button className="btn" onClick={()=>doPrintOne(sto)}>Print</button>
+            <button className="btn red" onClick={()=>deleteSto(sto)}>Hapus</button>
+          </div>
         </div>
-        <div className="row">
-          <button className="btn" onClick={()=>window.print()}>Print</button>
-          <button className="btn red" onClick={()=>deleteSto(sto)}>Hapus</button>
-        </div>
+
+        <AuditPrint sto={sto} parts={parts}/>
       </div>
-      <AuditPrint sto={sto} parts={parts}/>
-    </div>)}
+    })}
   </div>
 }
 
 function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
-  const maxRows = 23;
-  const detailRows:any[] = [...sto.details];
+  const dateKey=(v:any)=>{
+    if(!v) return '';
+    if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    const d=new Date(v);
+    if(Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  };
 
-  while(detailRows.length < maxRows){
-    detailRows.push(null);
+  const fmtDate=(v:any)=>{
+    const key=dateKey(v);
+    if(!key) return '-';
+    const [y,m,d]=key.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  const firstDetail:any = sto.details?.[0];
+  const firstPart = firstDetail ? parts.find(p=>p.partNo===firstDetail.partNo) : undefined;
+  const location = firstPart?.rackNo || '';
+  const area = sto.area || firstPart?.area || '';
+
+  const rows:any[]=[...(sto.details||[])];
+
+  while(rows.length<23){
+    rows.push({
+      id:`EMPTY-${rows.length}`,
+      partNo:'',
+      fiiId:'',
+      partName:'',
+      qtyPerBox:'',
+      boxQty:'',
+      fractionQty:'',
+      grandTotal:''
+    });
   }
 
-  const firstPart = sto.details?.[0];
-  const firstMaster = firstPart ? parts.find(p=>p.partNo===firstPart.partNo) : undefined;
+  return <div className="audit-a4">
+    <table className="audit-a4-table">
+      <tbody>
+        <tr>
+          <th colSpan={10} className="a4-title">STOCK TAKING TAG</th>
+        </tr>
 
-  const formatDate = (dateStr:string) => {
-    if(!dateStr) return '';
-    const [y,m,d] = dateStr.split('-');
-    return `${d}/${m}/${String(y).slice(-2)}`;
-  };
+        <tr>
+          <th className="a4-label">DATE</th>
+          <td colSpan={7}>{fmtDate(sto.stoDate)}</td>
+          <th className="a4-count-label">NAME OF COUNT :</th>
+          <td className="a4-count-name">{sto.creatorName}</td>
+        </tr>
 
-  const formatTime = (iso?:string) => {
-    if(!iso) return '';
-    return new Date(iso).toLocaleString('id-ID');
-  };
+        <tr>
+          <th className="a4-label">AREA</th>
+          <td colSpan={9}>{area}</td>
+        </tr>
 
-  return (
-    <div className="audit-sheet">
-      <div className="audit-form-title">STOCK TAKING TAG</div>
+        <tr>
+          <th className="a4-label">TAG NUMBER</th>
+          <td colSpan={9}>{sto.tagNo}</td>
+        </tr>
 
-      <div className="audit-header-table">
-        <div className="audit-header-left">
-          <div className="audit-h-row">
-            <div className="audit-h-label">DATE</div>
-            <div className="audit-h-value">{formatDate(sto.stoDate)}</div>
-          </div>
+        <tr>
+          <th className="a4-label">LOCATION OR<br/>RACK NUMBER</th>
+          <td colSpan={9}>{location}</td>
+        </tr>
 
-          <div className="audit-h-row">
-            <div className="audit-h-label">AREA</div>
-            <div className="audit-h-value">{sto.area}</div>
-          </div>
+        <tr>
+          <th rowSpan={2}>NO</th>
+          <th rowSpan={2}>PART NUMBER</th>
+          <th rowSpan={2}>FII ID</th>
+          <th rowSpan={2}>PART NAME</th>
+          <th>QTY/BOX</th>
+          <th>JUMLAH BOX</th>
+          <th>TOTAL</th>
+          <th>FRACTION</th>
+          <th>GRAND TOTAL</th>
+          <th>Rack Detail<br/>Column-Rows</th>
+        </tr>
 
-          <div className="audit-h-row">
-            <div className="audit-h-label">TAG NUMBER</div>
-            <div className="audit-h-value">{sto.tagNo}</div>
-          </div>
+        <tr>
+          <th>(a)</th>
+          <th>(b)</th>
+          <th>(a) × (b)</th>
+          <th>(d)</th>
+          <th>(c) + (d)</th>
+          <th></th>
+        </tr>
 
-          <div className="audit-h-row">
-            <div className="audit-h-label">LOCATION OR<br/>RACK NUMBER</div>
-            <div className="audit-h-value">{firstMaster?.rackNo || ''}</div>
-          </div>
-        </div>
+        {rows.slice(0,23).map((d:any,i:number)=>{
+          const p=parts.find(x=>x.partNo===d.partNo);
+          const totalBox = Number(d.qtyPerBox||0) * Number(d.boxQty||0);
 
-        <div className="audit-header-right">
-          <div className="audit-count-title">NAME OF COUNT :</div>
-          <div className="audit-count-name">{sto.creatorName}</div>
-        </div>
-      </div>
-
-      <table className="audit-main-table">
-        <colgroup>
-          <col className="col-no" />
-          <col className="col-partno" />
-          <col className="col-fii" />
-          <col className="col-partname" />
-          <col className="col-qtybox" />
-          <col className="col-box" />
-          <col className="col-total" />
-          <col className="col-fraction" />
-          <col className="col-grand" />
-          <col className="col-rack" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th rowSpan={2}>NO</th>
-            <th rowSpan={2}>PART NUMBER</th>
-            <th rowSpan={2}>FII ID</th>
-            <th rowSpan={2}>PART NAME</th>
-            <th>QTY/BOX</th>
-            <th>JUMLAH BOX</th>
-            <th>TOTAL</th>
-            <th>FRACTION</th>
-            <th>GRAND TOTAL</th>
-            <th rowSpan={2}>Rack Detail<br/>Column-Rows</th>
+          return <tr key={`${d.id}-${i}`} className="a4-item-row">
+            <td className="center">{i+1}</td>
+            <td>{d.partNo}</td>
+            <td className="center">{d.fiiId}</td>
+            <td>{d.partName}</td>
+            <td className="num">{d.qtyPerBox ? Number(d.qtyPerBox).toLocaleString('id-ID') : ''}</td>
+            <td className="num">{d.boxQty ? Number(d.boxQty).toLocaleString('id-ID') : ''}</td>
+            <td className="num">{totalBox ? totalBox.toLocaleString('id-ID') : ''}</td>
+            <td className="num">{d.fractionQty ? Number(d.fractionQty).toLocaleString('id-ID') : ''}</td>
+            <td className="num">{d.grandTotal ? Number(d.grandTotal).toLocaleString('id-ID') : ''}</td>
+            <td>{p?.rackNo || ''}</td>
           </tr>
+        })}
 
-          <tr>
-            <th>pcs</th>
-            <th>box</th>
-            <th>pcs</th>
-            <th>pcs</th>
-            <th>pcs</th>
-          </tr>
-        </thead>
+        <tr>
+          <td colSpan={7} rowSpan={4} className="a4-number-box">
+            <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+            <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+          </td>
+          <th colSpan={3} className="a4-sign-title">SIGN</th>
+        </tr>
 
-        <tbody>
-          {detailRows.map((d:any,i:number)=>{
-            if(!d){
-              return (
-                <tr key={`blank-${i}`}>
-                  <td>{i+1}</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              )
-            }
+        <tr>
+          <th>Auditor</th>
+          <th>Leader Team</th>
+          <th>Count</th>
+        </tr>
 
-            const master = parts.find(p=>p.partNo===d.partNo);
-            const totalBox = Number(d.qtyPerBox || 0) * Number(d.boxQty || 0);
+        <tr>
+          <td className="a4-sign-cell"></td>
+          <td className="a4-sign-cell"></td>
+          <td className="a4-sign-cell"></td>
+        </tr>
 
-            return (
-              <tr key={d.id || i}>
-                <td>{i+1}</td>
-                <td>{d.partNo}</td>
-                <td>{d.fiiId}</td>
-                <td>{d.partName}</td>
-                <td className="num">{d.qtyPerBox || ''}</td>
-                <td className="num">{d.boxQty || ''}</td>
-                <td className="num">{totalBox || ''}</td>
-                <td className="num">{d.fractionQty || ''}</td>
-                <td className="num">{d.grandTotal || ''}</td>
-                <td>{master?.rackNo || ''}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-
-      <div className="audit-footer">
-        <div className="audit-number-guide">
-          <span>0</span>
-          <span>1</span>
-          <span>2</span>
-          <span>3</span>
-          <span>4</span>
-          <span>5</span>
-          <span>6</span>
-          <span>7</span>
-          <span>8</span>
-          <span>9</span>
-        </div>
-
-        <div className="audit-sign-box">
-          <div className="audit-sign-title">SIGN</div>
-
-          <div className="audit-sign-grid">
-            <div>
-              <div className="audit-sign-role">Auditor</div>
-              <div className="audit-sign-space"></div>
-            </div>
-
-            <div>
-              <div className="audit-sign-role">Leader Team</div>
-              <div className="audit-sign-space"></div>
-            </div>
-
-            <div>
-              <div className="audit-sign-role">Count</div>
-              <div className="audit-sign-space"></div>
-            </div>
-          </div>
-
-          <div className="audit-time-count">
-            Time of Count: Start {formatTime(sto.startTime)} | End {formatTime(sto.endTime)} | Duration {sto.durationHour || 0} Hour
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+        <tr>
+          <th colSpan={2}>Time of Count :</th>
+          <td className="center">{sto.durationHour ? `${sto.durationHour} Jam` : '-'}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 }
-
-
 
 function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setUsers}:{parts:Part[],setParts:(p:Part[])=>void,tags:Tag[],setTags:(t:Tag[])=>void,tagDetails:TagDetail[],setTagDetails:(t:TagDetail[])=>void,users:User[],setUsers:(u:User[])=>void}){   
   const [tab,setTab]=useState<'MasterSTO'|'User'>('MasterSTO');
