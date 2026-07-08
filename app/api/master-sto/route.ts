@@ -84,6 +84,31 @@ export async function POST(req: NextRequest) {
     const tags:any[] = body.tags || [];
     const tagDetails:any[] = body.tagDetails || [];
 
+    const existingCountRows = await sql`SELECT COUNT(*)::int AS count FROM master_sto`;
+    const existingCount = Number(existingCountRows?.[0]?.count || 0);
+    const incomingCount = Number(tagDetails.length || 0);
+
+    // Safety guard:
+    // Jangan biarkan data Neon yang sudah lengkap ketimpa payload kosong/separuh saat reload.
+    // Kalau incoming lebih kecil dari existing, tolak sync.
+    if(existingCount > 0 && incomingCount > 0 && incomingCount < existingCount){
+      return NextResponse.json({
+        ok:false,
+        message:`Master sync ditolak: incoming ${incomingCount} lebih kecil dari existing ${existingCount}. Mencegah data master kepotong.`,
+        existingCount,
+        incomingCount
+      }, { status:409 });
+    }
+
+    if(existingCount > 0 && incomingCount === 0){
+      return NextResponse.json({
+        ok:false,
+        message:`Master sync ditolak: incoming kosong, existing ${existingCount}.`,
+        existingCount,
+        incomingCount
+      }, { status:409 });
+    }
+
     await sql`DELETE FROM master_sto`;
 
     for (let i = 0; i < tagDetails.length; i++) {
