@@ -15,3 +15,14 @@ quick_fix.py
 reset_*.py
 init_neon_users.mjs
 init_neon_stos.mjs
+
+backups/
+*.backup.*
+app/*.backup.*
+lib/*.backup.*
+
+backups/
+app/*.backup*
+app/page.backup*
+app/globals.backup*
+*.backup*

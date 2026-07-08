@@ -151,7 +151,7 @@ export default function Home(){
       </div>
     </div>
     {menu==='DASHBOARD' && <Dashboard tags={tags} stos={stos}/>} 
-    {menu==='INPUT' && <InputSto user={user} parts={parts} tags={tags} tagDetails={tagDetails} stos={stos} setStos={setStos}/>} 
+    {menu==='INPUT' && <InputSto user={user} parts={parts} setParts={setParts} tags={tags} setTags={setTags} tagDetails={tagDetails} setTagDetails={setTagDetails} stos={stos} setStos={setStos}/>} 
     {menu==='CHECK' && <CheckSto user={user} stos={stos} setStos={setStos}/>} 
     {menu==='RESUME' && <Resume user={user} parts={parts} stos={stos} setStos={setStos}/>} 
     {menu==='MASTER' && user.role==='ADMIN' && <Master parts={parts} setParts={setParts} tags={tags} setTags={setTags} tagDetails={tagDetails} setTagDetails={setTagDetails} users={users} setUsers={setUsers}/>}
@@ -165,6 +165,10 @@ function Login({users,onLogin}:{users:User[],onLogin:(u:User)=>void}){
   const [username,setUsername]=useState('');
   const [password,setPassword]=useState('');
   const [loading,setLoading]=useState(false);
+
+
+  
+
 
   const submit=async()=>{
     if(loading) return;
@@ -245,7 +249,8 @@ function Dashboard({tags,stos}:{tags:Tag[],stos:StoHeader[]}){ const counted=sto
 function Stat({t,v}:{t:string,v:number}){return <div className="card span-3"><div className="sub">{t}</div><div className="stat">{v}</div></div>}
 
 
-function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Part[],tags:Tag[],tagDetails:TagDetail[],stos:StoHeader[],setStos:(s:StoHeader[])=>void}){
+
+function InputSto({user,parts,setParts,tags,setTags,tagDetails,setTagDetails,stos,setStos}:{user:User,parts:Part[],setParts:any,tags:Tag[],setTags:any,tagDetails:TagDetail[],setTagDetails:any,stos:StoHeader[],setStos:any}){
   const [date,setDate]=useState(today());
   const [area,setArea]=useState(user.defaultArea||'RM');
   const [tagNo,setTagNo]=useState(tags[0]?.tagNo||'');
@@ -253,28 +258,159 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
   const [start,setStart]=useState(nowIso());
   const [details,setDetails]=useState<StoDetail[]>([]);
 
+  const [extraOpen,setExtraOpen]=useState(false);
+  const [masterSearch,setMasterSearch]=useState('');
+  const [manualPart,setManualPart]=useState<any>({
+    fiiId:'',
+    partNo:'',
+    partName:'',
+    qtyPerBox:'',
+    area:'',
+    rackNo:'',
+    dept:''
+  });
+  const [additionalTagNos,setAdditionalTagNos]=useState<string[]>([]);
+  const [isAdditionalTag,setIsAdditionalTag]=useState(false);
+
+  const validInputTags=useMemo(()=>{
+    const validTagSet=new Set(
+      tagDetails
+        .filter((td:any)=>td.active!==false)
+        .filter((td:any)=>parts.some((p:any)=>p.partNo===td.partNo && p.active!==false))
+        .map((td:any)=>String(td.tagNo))
+    );
+
+    const map=new Map<string,any>();
+
+    tags
+      .filter((t:any)=>validTagSet.has(String(t.tagNo)))
+      .forEach((t:any)=>{
+        const tagNo=String(t.tagNo||'').trim();
+        if(tagNo && !map.has(tagNo)){
+          map.set(tagNo,t);
+        }
+      });
+
+    const extraList=(typeof additionalTagNos!=='undefined' ? additionalTagNos : []);
+
+    extraList.forEach((tagNo:string)=>{
+      const clean=String(tagNo||'').trim();
+      if(clean && !map.has(clean)){
+        map.set(clean,{
+          tagNo:clean,
+          area,
+          description:`TAG TAMBAHAN ${clean}`,
+          active:true
+        } as any);
+      }
+    });
+
+    return Array.from(map.values()).sort((a:any,b:any)=>String(a.tagNo).localeCompare(String(b.tagNo)));
+  },[tags,tagDetails,parts,area,additionalTagNos]);
+
+  useEffect(()=>{
+    if(!validInputTags.length) return;
+
+    const exists=validInputTags.some((t:any)=>String(t.tagNo)===String(tagNo));
+
+    if(!exists){
+      setTagNo(validInputTags[0].tagNo);
+    }
+  },[validInputTags,tagNo]);
+
+
+
+  const dateKey=(v:any)=>{
+    if(!v) return '';
+    if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    const d=new Date(v);
+    if(Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  };
+
+  const sameDateTag=(s:any)=>{
+    return dateKey(s.stoDate)===dateKey(date) && String(s.tagNo||'')===String(tagNo||'');
+  };
+
+  const makeNextTagNo=()=>{
+    const allTagNos=[
+      ...tags.map((t:any)=>String(t.tagNo||'')),
+      ...additionalTagNos,
+      ...stos.map((s:any)=>String(s.tagNo||''))
+    ].filter(Boolean);
+
+    const current=String(tagNo || allTagNos[0] || 'M001');
+    const m=current.match(/^([A-Za-z]+)(\d+)$/);
+
+    const prefix=m ? m[1] : 'M';
+    const digitLen=m ? m[2].length : 3;
+
+    let maxNo=0;
+
+    allTagNos.forEach(t=>{
+      const mm=String(t).match(new RegExp(`^${prefix}(\\d+)$`));
+      if(mm){
+        maxNo=Math.max(maxNo, Number(mm[1])||0);
+      }
+    });
+
+    const next=maxNo+1;
+    return `${prefix}${String(next).padStart(digitLen,'0')}`;
+  };
+
+  const createAdditionalTag=()=>{
+    const nextTag=makeNextTagNo();
+
+    const exists = [
+      ...tags.map((t:any)=>String(t.tagNo||'')),
+      ...additionalTagNos,
+      ...stos.map((s:any)=>String(s.tagNo||''))
+    ].some(t=>String(t)===nextTag);
+
+    if(exists){
+      alert(`Tag tambahan ${nextTag} sudah ada. Coba refresh data atau cek Resume.`);
+      return;
+    }
+
+    setAdditionalTagNos(prev=>Array.from(new Set(prev.includes(nextTag)?prev:[...prev,nextTag])));
+    setTagNo(nextTag);
+    setIsAdditionalTag(true);
+    setDetails([]);
+    setStart(nowIso());
+    setExtraOpen(true);
+    alert(`Tag tambahan dibuat: ${nextTag}. Silakan pilih part dari Master atau input manual.`);
+  };
+
   const revisionSto = useMemo(()=>{
-    return stos.find(s=>s.tagNo===tagNo && s.status==='REVISION');
-  },[stos,tagNo]);
+    return stos.find(s=>sameDateTag(s) && s.status==='REVISION');
+  },[stos,tagNo,date]);
 
   useEffect(()=>{
     if(!tagNo) return;
 
-    const rev = stos.find(s=>s.tagNo===tagNo && s.status==='REVISION');
+    if(additionalTagNos.includes(tagNo)){
+      setIsAdditionalTag(true);
+      setStart(nowIso());
+      return;
+    }else{
+      setIsAdditionalTag(false);
+    }
+
+    const rev = stos.find(s=>dateKey(s.stoDate)===dateKey(date) && s.tagNo===tagNo && s.status==='REVISION');
 
     if(rev){
-      setDate(rev.stoDate || today());
       setArea(rev.area || user.defaultArea || 'RM');
       setStart(nowIso());
       setDetails((rev.details||[]).map((d:any)=>({
         ...d,
-        id: d.id || uid('D'),
+        id:d.id || uid('D'),
         leaderCheckStatus:false
       })));
       return;
     }
 
     setStart(nowIso());
+
     const ds=tagDetails
       .filter(td=>td.tagNo===tagNo&&td.active)
       .sort((a,b)=>a.sequenceNo-b.sequenceNo)
@@ -294,7 +430,7 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
       }));
 
     setDetails(ds);
-  },[tagNo,parts,tagDetails,stos,user.defaultArea]);
+  },[tagNo,date,parts,tagDetails,stos,user.defaultArea,additionalTagNos]);
 
   const update=(id:string,patch:Partial<StoDetail>)=>setDetails(ds=>ds.map(d=>{
     if(d.id!==id) return d;
@@ -302,17 +438,99 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
     n.grandTotal=(Number(n.qtyPerBox)||0)*(Number(n.boxQty)||0)+(Number(n.fractionQty)||0);
     return n;
   }));
+  const removeDetail=(id:string)=>setDetails(ds=>ds.filter(d=>d.id!==id));
 
   const filled=details.filter(d=>d.boxQty>0 || d.fractionQty>0).length;
 
-  const submit=()=>{
+  const duplicateInCurrentDetails=(partNo:string)=>{
+    return details.some((d:any)=>String(d.partNo||'').trim().toLowerCase()===String(partNo||'').trim().toLowerCase());
+  };
+
+  const addPartToDetails=(p:any, source:'MASTER'|'MANUAL')=>{
+    if(!isAdditionalTag){
+      const ok=confirm('Saat ini Anda belum membuat Tag Tambahan. Part akan ditambahkan ke tag yang sedang dipilih. Lebih disarankan klik "Buat Tag Tambahan" dulu. Lanjutkan?');
+      if(!ok) return;
+    }
+
+    const partNo=String(p.partNo||'').trim();
+
+    if(!partNo){
+      alert('Part Number wajib diisi');
+      return;
+    }
+
+    if(duplicateInCurrentDetails(partNo)){
+      const ok=confirm(`Part ${partNo} sudah ada di list tag ini. Tetap tambahkan?`);
+      if(!ok) return;
+    }
+
+    const qtyPerBox=Number(p.qtyPerBox||0);
+
+    const newDetail:any={
+      id:uid(source==='MASTER'?'DM':'DX'),
+      partNo,
+      fiiId:String(p.fiiId||'').trim(),
+      partName:String(p.partName||'').trim(),
+      qtyPerBox,
+      boxQty:0,
+      fractionQty:0,
+      grandTotal:0,
+      calculationNote:source==='MASTER'?'Tambahan dari Master':'Tambahan Manual',
+      leaderCheckStatus:false,
+      isAdditional:true,
+      additionalSource:source
+    };
+
+    setDetails(ds=>[...ds,newDetail]);
+    setExtraOpen(false);
+  };
+
+  const masterOptions=useMemo(()=>{
+    const q=masterSearch.trim().toLowerCase();
+
+    if(!q) return parts.slice(0,20);
+
+    return parts
+      .filter((p:any)=>{
+        return String(p.fiiId||'').toLowerCase().includes(q)
+          || String(p.partNo||'').toLowerCase().includes(q)
+          || String(p.partName||'').toLowerCase().includes(q)
+          || String(p.rackNo||'').toLowerCase().includes(q);
+      })
+      .slice(0,30);
+  },[parts,masterSearch]);
+
+  const latestDuplicateCheck=async()=>{
+    try{
+      const res=await fetch('/api/stos');
+      const j=await res.json();
+
+      if(!j.ok || !Array.isArray(j.stos)) return null;
+
+      return j.stos.find((s:any)=>{
+        return dateKey(s.stoDate)===dateKey(date)
+          && String(s.tagNo||'')===String(tagNo||'')
+          && ['COUNTED','CHECKED','CLOSED','REVISION'].includes(String(s.status||''));
+      }) || null;
+    }catch{
+      return null;
+    }
+  };
+
+  const submit=async()=>{
     if(!tagNo){
       alert('Tag belum dipilih');
       return;
     }
 
+    if(details.length===0){
+      alert('Tidak ada item dalam tag ini');
+      return;
+    }
+
     const end=nowIso();
-    const dur=Math.max(0, Math.round(((new Date(end).getTime()-new Date(start).getTime())/3600000)*10)/10);
+    const rawHour=(new Date(end).getTime()-new Date(start).getTime())/3600000;
+    const dur=rawHour>0 ? Math.max(0.01, Math.round(rawHour*100)/100) : 0;
 
     if(revisionSto){
       const updated:StoHeader = {
@@ -329,12 +547,12 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
         leaderUserId:undefined,
         leaderName:undefined,
         leaderSignedAt:undefined,
-        details:details.map(d=>({
+        details:details.map((d:any)=>({
           ...d,
           leaderCheckStatus:false,
           leaderNgNote:'',
-          leaderCheckedBy:undefined as any,
-          leaderCheckedAt:undefined as any
+          leaderCheckedBy:undefined,
+          leaderCheckedAt:undefined
         }))
       } as any;
 
@@ -343,11 +561,89 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
       return;
     }
 
-    const duplicate = stos.find(s=>s.tagNo===tagNo && ['COUNTED','CHECKED','CLOSED'].includes(String(s.status)));
-    if(duplicate){
-      const ok = confirm(`Tag ${tagNo} sudah pernah disimpan dengan status ${duplicate.status}.\nTetap buat transaksi baru?`);
-      if(!ok) return;
+    const localDuplicate = stos.find((s:any)=>{
+      return dateKey(s.stoDate)===dateKey(date)
+        && String(s.tagNo||'')===String(tagNo||'')
+        && ['COUNTED','CHECKED','CLOSED','REVISION'].includes(String(s.status||''));
+    });
+
+    if(localDuplicate){
+      alert(`Tag ${tagNo} tanggal ${date} sudah pernah diinput oleh ${localDuplicate.creatorName || '-'} dengan status ${localDuplicate.status}.`);
+      return;
     }
+
+    const dbDuplicate = await latestDuplicateCheck();
+
+    if(dbDuplicate){
+      alert(`Tag ${tagNo} tanggal ${date} sudah pernah diinput oleh ${dbDuplicate.creatorName || '-'} dengan status ${dbDuplicate.status}.`);
+      return;
+    }
+
+    
+    // Persist tag tambahan supaya setelah disimpan, tag baru tetap muncul dengan list part yang sama
+    if(isAdditionalTag || additionalTagNos.includes(tagNo)){
+      const cleanTag=String(tagNo||'').trim();
+
+      if(cleanTag){
+        setTags(prev=>{
+          if(prev.some((t:any)=>String(t.tagNo)===cleanTag)) return prev;
+
+          return [...prev,{
+            tagNo:cleanTag,
+            area,
+            description:`TAG TAMBAHAN ${cleanTag}`,
+            active:true
+          } as any];
+        });
+
+        setParts(prev=>{
+          const next=[...prev];
+
+          details.forEach((d:any)=>{
+            const partNo=String(d.partNo||'').trim();
+            if(!partNo) return;
+
+            const exists=next.some((p:any)=>
+              String(p.partNo||'').trim().toLowerCase()===partNo.toLowerCase()
+            );
+
+            if(!exists){
+              next.push({
+                partNo,
+                fiiId:String(d.fiiId||'').trim(),
+                partName:String(d.partName||'').trim(),
+                qtyPerBox:Number(d.qtyPerBox||0),
+                area,
+                rackNo:'',
+                dept:'',
+                active:true
+              } as any);
+            }
+          });
+
+          return next;
+        });
+
+        setTagDetails(prev=>{
+          const withoutOld=prev.filter((td:any)=>String(td.tagNo)!==cleanTag);
+
+          const mapped=details
+            .filter((d:any)=>String(d.partNo||'').trim())
+            .map((d:any,i:number)=>({
+              id:uid('TD'),
+              tagNo:cleanTag,
+              partNo:String(d.partNo||'').trim(),
+              sequenceNo:i+1,
+              active:true
+            } as any));
+
+          return [...withoutOld,...mapped];
+        });
+
+        setAdditionalTagNos(prev=>Array.from(new Set(prev.includes(cleanTag)?prev:[...prev,cleanTag])));
+      }
+    }
+
 
     const sto:StoHeader={
       stoId:uid('STO'),
@@ -366,6 +662,7 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
     } as any;
 
     setStos([sto,...stos]);
+    if(isAdditionalTag || additionalTagNos.includes(tagNo)){ setIsAdditionalTag(true); }
     alert('STO tersimpan dan signature creator sudah dibuat.');
   };
 
@@ -393,7 +690,6 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
           <h2 className="title">Input STO</h2>
           <div className="sub">Tag {tagNo} • Progress {filled}/{details.length} • Start {timeOnly(start)}</div>
         </div>
-        
       </div>
 
       <div className="grid">
@@ -404,14 +700,23 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
         <div className="span-3">
           <label>Area</label>
           <select value={area} onChange={e=>setArea(e.target.value)}>
-            <option>RM</option><option>WIP</option><option>FG</option><option>P</option><option>S</option>
-            <option>RAK 1</option><option>RAK 2</option><option>RAK 3</option>
+            <option>RM</option>
+            <option>WIP</option>
+            <option>FG</option>
+            <option>P</option>
+            <option>S</option>
+            <option>RAK 1</option>
+            <option>RAK 2</option>
+            <option>RAK 3</option>
           </select>
         </div>
         <div className="span-3">
           <label>Tag Number</label>
-          <select value={tagNo} onChange={e=>setTagNo(e.target.value)}>
-            {tags.map(t=><option key={t.tagNo}>{t.tagNo}</option>)}
+          <select value={tagNo} onChange={e=>{
+            setTagNo(e.target.value);
+            setIsAdditionalTag(additionalTagNos.includes(e.target.value));
+          }}>
+            {validInputTags.map((t:any,i:number)=><option key={`${t.tagNo}-${i}`} value={t.tagNo}>{t.tagNo}</option>)}
           </select>
         </div>
         <div className="span-3">
@@ -424,6 +729,86 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
       </div>
     </div>
 
+    <div className="card span-12 extra-tag-card no-print">
+      <div className="between">
+        <div>
+          <h2 className="title">Tag Tambahan</h2>
+          <div className="sub">
+            Buat tag baru otomatis melanjutkan tag terakhir. Contoh: M001-M033 → M034.
+            Setelah tag dibuat, isi part bisa dari Master STO atau input manual.
+          </div>
+          {isAdditionalTag && <div className="extra-tag-pill">Sedang input tag tambahan: <b>{tagNo}</b></div>}
+        </div>
+        <div className="row">
+          <button className="btn green" onClick={createAdditionalTag}>Buat Tag Tambahan</button>
+          <button className="btn orange" onClick={()=>setExtraOpen(!extraOpen)}>
+            {extraOpen?'Tutup':'Tambah / Pilih Part'}
+          </button>
+        </div>
+      </div>
+
+      {extraOpen && <div className="extra-panel">
+        <div className="grid">
+          <div className="span-6">
+            <h3>Isi Part dari Master STO</h3>
+            <label>Cari FII ID / Part Number / Part Name / Rack</label>
+            <input value={masterSearch} onChange={e=>setMasterSearch(e.target.value)} placeholder="Cari part dari master..."/>
+
+            <div className="extra-master-list">
+              {masterOptions.map((p:any)=>
+                <div className="extra-master-row" key={p.partNo}>
+                  <div>
+                    <b>{p.fiiId || '-'}</b> • {p.partNo}
+                    <div className="sub">{p.partName} • Qty/Box {p.qtyPerBox || 0} • {p.rackNo || '-'}</div>
+                  </div>
+                  <button className="btn small green" onClick={()=>addPartToDetails(p,'MASTER')}>Tambah</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="span-6">
+            <h3>Isi Part Manual</h3>
+
+            <div className="grid">
+              <div className="span-6">
+                <label>FII ID</label>
+                <input value={manualPart.fiiId} onChange={e=>setManualPart({...manualPart,fiiId:e.target.value})}/>
+              </div>
+              <div className="span-6">
+                <label>Part Number</label>
+                <input value={manualPart.partNo} onChange={e=>setManualPart({...manualPart,partNo:e.target.value})}/>
+              </div>
+              <div className="span-12">
+                <label>Part Name</label>
+                <input value={manualPart.partName} onChange={e=>setManualPart({...manualPart,partName:e.target.value})}/>
+              </div>
+              <div className="span-6">
+                <label>Qty/Box</label>
+                <input type="number" value={manualPart.qtyPerBox} onChange={e=>setManualPart({...manualPart,qtyPerBox:e.target.value})}/>
+              </div>
+              <div className="span-6">
+                <label>Area</label>
+                <input value={manualPart.area} onChange={e=>setManualPart({...manualPart,area:e.target.value})}/>
+              </div>
+              <div className="span-6">
+                <label>Lokasi / Rack</label>
+                <input value={manualPart.rackNo} onChange={e=>setManualPart({...manualPart,rackNo:e.target.value})}/>
+              </div>
+              <div className="span-6">
+                <label>Dept</label>
+                <input value={manualPart.dept} onChange={e=>setManualPart({...manualPart,dept:e.target.value})}/>
+              </div>
+            </div>
+
+            <div className="row" style={{marginTop:10}}>
+              <button className="btn green" onClick={()=>addPartToDetails(manualPart,'MANUAL')}>Tambah Manual</button>
+              <button className="btn" onClick={()=>setManualPart({fiiId:'',partNo:'',partName:'',qtyPerBox:'',area:'',rackNo:'',dept:''})}>Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>}
+    </div>
 
     <div className="input-list-header no-print span-12">
       <div>No</div>
@@ -433,8 +818,9 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
       <div>Calc</div>
       <div>Total</div>
     </div>
+
     <div className="span-12">
-      {details.map((d,i)=><StoItem key={`${d.id}-${i}`} index={i+1} d={d} mode={mode} update={update}/>)}
+      {details.map((d,i)=><StoItem key={`${d.id}-${i}`} index={i+1} d={d} mode={mode} update={update} remove={removeDetail}/>)}
     </div>
 
     <div className="save-bottom no-print">
@@ -445,7 +831,7 @@ function InputSto({user,parts,tags,tagDetails,stos,setStos}:{user:User,parts:Par
   </div>
 }
 
-function StoItem({d,index,mode,update}:{d:StoDetail,index:number,mode:ViewMode,update:(id:string,p:Partial<StoDetail>)=>void}){ 
+function StoItem({d,index,mode,update,remove}:{d:StoDetail,index:number,mode:ViewMode,update:(id:string,p:Partial<StoDetail>)=>void,remove:(id:string)=>void}){ 
   const ok=d.boxQty>0||d.fractionQty>0; 
   const [calcOpen,setCalcOpen]=useState(false);
   const [calc,setCalc]=useState(d.calculationNote||'');
@@ -1008,8 +1394,26 @@ function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
   </div>
 }
 
-function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setUsers}:{parts:Part[],setParts:(p:Part[])=>void,tags:Tag[],setTags:(t:Tag[])=>void,tagDetails:TagDetail[],setTagDetails:(t:TagDetail[])=>void,users:User[],setUsers:(u:User[])=>void}){   
+
+function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setUsers}:{parts:Part[],setParts:any,tags:Tag[],setTags:any,tagDetails:TagDetail[],setTagDetails:any,users:User[],setUsers:any}){   
   const [tab,setTab]=useState<'MasterSTO'|'User'>('MasterSTO');
+  const [search,setSearch]=useState('');
+
+  const emptyMaster={
+    fiiId:'',
+    partNo:'',
+    partName:'',
+    qtyPerBox:'',
+    area:'',
+    rackNo:'',
+    dept:'',
+    tagNo:'',
+    sequenceNo:'',
+    active:true
+  };
+
+  const [form,setForm]=useState<any>(emptyMaster);
+  const [editKey,setEditKey]=useState('');
 
   const cleanNumber=(v:any)=>{
     if(v===undefined || v===null) return 0;
@@ -1021,7 +1425,10 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
     return tagDetails.map(td=>{
       const p=parts.find(x=>x.partNo===td.partNo);
       const t=tags.find(x=>x.tagNo===td.tagNo);
+
       return {
+        key:`${td.tagNo}__${td.partNo}`,
+        id:td.id,
         'FII ID': p?.fiiId || '',
         'PART NUMBER': td.partNo,
         'PART NAME': p?.partName || '',
@@ -1029,13 +1436,42 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
         'AREA': p?.area || t?.area || '',
         'LOKASI & NO RACK': p?.rackNo || '',
         'DEPT': p?.dept || '',
-        'TAG': td.tagNo
+        'TAG': td.tagNo,
+        'SEQUENCE': td.sequenceNo || 0,
+        active:td.active!==false && p?.active!==false && t?.active!==false
       };
-    }).sort((a,b)=>String(a.TAG).localeCompare(String(b.TAG)) || String(a['FII ID']).localeCompare(String(b['FII ID'])));
+    }).sort((a,b)=>String(a.TAG).localeCompare(String(b.TAG)) || Number(a.SEQUENCE)-Number(b.SEQUENCE) || String(a['FII ID']).localeCompare(String(b['FII ID'])));
   },[parts,tags,tagDetails]);
 
+  const filteredRows=useMemo(()=>{
+    const q=search.trim().toLowerCase();
+
+    if(!q) return masterRows;
+
+    return masterRows.filter((r:any)=>{
+      return String(r['FII ID']||'').toLowerCase().includes(q)
+        || String(r['PART NUMBER']||'').toLowerCase().includes(q)
+        || String(r['PART NAME']||'').toLowerCase().includes(q)
+        || String(r['AREA']||'').toLowerCase().includes(q)
+        || String(r['LOKASI & NO RACK']||'').toLowerCase().includes(q)
+        || String(r['DEPT']||'').toLowerCase().includes(q)
+        || String(r['TAG']||'').toLowerCase().includes(q);
+    });
+  },[masterRows,search]);
+
   const exportMasterSto=()=>{
-    const ws=XLSX.utils.json_to_sheet(masterRows);
+    const rows=masterRows.map((r:any)=>({
+      'FII ID':r['FII ID'],
+      'PART NUMBER':r['PART NUMBER'],
+      'PART NAME':r['PART NAME'],
+      'QTY/BOX':r['QTY/BOX'],
+      'AREA':r['AREA'],
+      'LOKASI & NO RACK':r['LOKASI & NO RACK'],
+      'DEPT':r['DEPT'],
+      'TAG':r['TAG']
+    }));
+
+    const ws=XLSX.utils.json_to_sheet(rows);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'MASTER STO');
     XLSX.writeFile(wb,`Master_STO_${today()}.xlsx`);
@@ -1046,6 +1482,7 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
     if(!file) return;
 
     const reader=new FileReader();
+
     reader.onload=(ev)=>{
       const wb=XLSX.read(ev.target?.result,{type:'binary'});
       const rows:any[]=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
@@ -1059,35 +1496,26 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
         const fiiId=String(r['FII ID'] || r['fiiId'] || '').trim();
         const partNo=String(r['PART NUMBER'] || r['Part Number'] || r.partNo || '').trim();
         const partName=String(r['PART NAME'] || r['Part Name'] || r.partName || '').trim();
-        const tagNo=String(r['TAG'] || r['Tag'] || r.tagNo || '').trim();
+        const qtyPerBox=cleanNumber(r['QTY/BOX'] || r['QTY BOX'] || r['QTY PER BOX'] || r['Qty Per Box'] || r.qtyPerBox || 0);
         const area=String(r['AREA'] || r.Area || r.area || '').trim();
         const rackNo=String(r['LOKASI & NO RACK'] || r['Rack Number'] || r.rackNo || '').trim();
         const dept=String(r['DEPT'] || r.Dept || r.dept || '').trim();
-
-        // QTY/BOX adalah data master packaging untuk rumus:
-        // Grand Total = QTY/BOX x Jumlah Box + Fraction.
-        // QTY(PCS/KG) tidak dipakai di Master karena itu hasil STO.
-        const qtyPerBox=cleanNumber(
-          r['QTY/BOX'] ||
-          r['QTY BOX'] ||
-          r['QTY PER BOX'] ||
-          r['Qty Per Box'] ||
-          r.qtyPerBox ||
-          0
-        );
+        const tagNo=String(r['TAG'] || r['Tag'] || r.tagNo || '').trim();
 
         if(!partNo || !tagNo) return;
 
-        nextParts.push({
-          partNo,
-          fiiId,
-          partName,
-          qtyPerBox,
-          area,
-          rackNo,
-          dept,
-          active:true
-        });
+        if(!nextParts.some(p=>p.partNo===partNo)){
+          nextParts.push({
+            partNo,
+            fiiId,
+            partName,
+            qtyPerBox,
+            area,
+            rackNo,
+            dept,
+            active:true
+          });
+        }
 
         if(!tagMap.has(tagNo)){
           tagMap.set(tagNo,{
@@ -1121,9 +1549,150 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
     reader.readAsBinaryString(file);
   };
 
-  const shownRows = masterRows;
+  const editRow=(r:any)=>{
+    setEditKey(`${r['TAG']}__${r['PART NUMBER']}`);
 
-  return <div className="grid">
+    setForm({
+      fiiId:r['FII ID'] || '',
+      partNo:r['PART NUMBER'] || '',
+      partName:r['PART NAME'] || '',
+      qtyPerBox:r['QTY/BOX'] || '',
+      area:r['AREA'] || '',
+      rackNo:r['LOKASI & NO RACK'] || '',
+      dept:r['DEPT'] || '',
+      tagNo:r['TAG'] || '',
+      sequenceNo:r['SEQUENCE'] || '',
+      active:r.active!==false
+    });
+
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  const clearForm=()=>{
+    setForm(emptyMaster);
+    setEditKey('');
+  };
+
+  const saveMasterRow=()=>{
+    const partNo=String(form.partNo||'').trim();
+    const tagNo=String(form.tagNo||'').trim();
+
+    if(!partNo || !tagNo){
+      alert('PART NUMBER dan TAG wajib diisi');
+      return;
+    }
+
+    const payloadPart:any={
+      partNo,
+      fiiId:String(form.fiiId||'').trim(),
+      partName:String(form.partName||'').trim(),
+      qtyPerBox:cleanNumber(form.qtyPerBox),
+      area:String(form.area||'').trim(),
+      rackNo:String(form.rackNo||'').trim(),
+      dept:String(form.dept||'').trim(),
+      active:form.active!==false
+    };
+
+    const payloadTag:any={
+      tagNo,
+      area:payloadPart.area || 'RM',
+      description:`TAG ${tagNo}`,
+      active:true
+    };
+
+    const seq=Number(form.sequenceNo||0) || (
+      Math.max(0,...tagDetails.filter(td=>td.tagNo===tagNo).map(td=>Number(td.sequenceNo)||0)) + 1
+    );
+
+    const newKey=`${tagNo}__${partNo}`;
+
+    const duplicate=tagDetails.some((td:any)=>{
+      const key=`${td.tagNo}__${td.partNo}`;
+      return key===newKey && key!==editKey;
+    });
+
+    if(duplicate){
+      alert(`Part ${partNo} sudah ada di TAG ${tagNo}`);
+      return;
+    }
+
+    setParts(prev=>{
+      const exists=prev.some((p:any)=>p.partNo===partNo);
+
+      if(exists){
+        return prev.map((p:any)=>p.partNo===partNo?{...p,...payloadPart}:p);
+      }
+
+      return [payloadPart,...prev];
+    });
+
+    setTags(prev=>{
+      const exists=prev.some((t:any)=>t.tagNo===tagNo);
+
+      if(exists){
+        return prev.map((t:any)=>t.tagNo===tagNo?{...t,...payloadTag}:t);
+      }
+
+      return [payloadTag,...prev];
+    });
+
+    setTagDetails(prev=>{
+      let next=[...prev];
+
+      if(editKey){
+        const [oldTag,oldPart]=editKey.split('__');
+        next=next.filter((td:any)=>!(td.tagNo===oldTag && td.partNo===oldPart));
+      }
+
+      next.push({
+        id:uid('TD'),
+        tagNo,
+        partNo,
+        sequenceNo:seq,
+        active:form.active!==false
+      });
+
+      return next.sort((a,b)=>String(a.tagNo).localeCompare(String(b.tagNo)) || Number(a.sequenceNo)-Number(b.sequenceNo));
+    });
+
+    alert(editKey?'Master berhasil diupdate':'Master berhasil ditambahkan');
+    clearForm();
+  };
+
+  const deleteRow=(r:any)=>{
+    const tagNo=String(r['TAG']);
+    const partNo=String(r['PART NUMBER']);
+
+    if(!confirm(`Hapus part ${partNo} dari TAG ${tagNo}?`)) return;
+
+    setTagDetails(prev=>{
+      const next=prev.filter((td:any)=>!(td.tagNo===tagNo && td.partNo===partNo));
+
+      // Bersihkan TAG yang sudah tidak punya detail aktif
+      const usedTags=new Set(
+        next
+          .filter((td:any)=>td.active!==false)
+          .map((td:any)=>String(td.tagNo))
+      );
+
+      setTags(ts=>ts.filter((t:any)=>usedTags.has(String(t.tagNo))));
+
+      // Bersihkan PART yang sudah tidak dipakai di tag mana pun
+      const usedParts=new Set(
+        next
+          .filter((td:any)=>td.active!==false)
+          .map((td:any)=>String(td.partNo))
+      );
+
+      setParts(ps=>ps.filter((p:any)=>usedParts.has(String(p.partNo))));
+
+      return next;
+    });
+
+    alert('Data master berhasil dihapus');
+  };
+
+  return <div className="grid master-page">
     <div className="card span-12">
       <div className="row">
         <button className={`btn ${tab==='MasterSTO'?'primary':''}`} onClick={()=>setTab('MasterSTO')}>Master STO</button>
@@ -1141,47 +1710,120 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
 
     {tab==='User' && <UserManagement users={users} setUsers={setUsers}/>}
 
-    {tab==='MasterSTO' && <div className="card span-12">
-      <div className="between" style={{marginBottom:10}}>
-        <div>
-          <h2 className="title">Master STO</h2>
-          <div className="sub">Format gabungan seperti Excel: FII ID, Part Number, Part Name, Qty/Box, Area, Rack, Dept, Tag.</div>
+    {tab==='MasterSTO' && <>
+      <div className="card span-12 master-form-card">
+        <div className="between">
+          <div>
+            <h2 className="title">{editKey?'Edit Master STO':'Tambah Master STO'}</h2>
+            <div className="sub">Tambah, edit, delete part/tag langsung dari aplikasi. Import/export Excel tetap tersedia.</div>
+          </div>
+          <span className="badge counted">{masterRows.length} item</span>
         </div>
-        <span className="badge counted">{shownRows.length} item</span>
+
+        <div className="grid">
+          <div className="span-3">
+            <label>FII ID</label>
+            <input value={form.fiiId} onChange={e=>setForm({...form,fiiId:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Part Number</label>
+            <input value={form.partNo} onChange={e=>setForm({...form,partNo:e.target.value})}/>
+          </div>
+          <div className="span-6">
+            <label>Part Name</label>
+            <input value={form.partName} onChange={e=>setForm({...form,partName:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>QTY/BOX</label>
+            <input type="number" value={form.qtyPerBox} onChange={e=>setForm({...form,qtyPerBox:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Area</label>
+            <input value={form.area} onChange={e=>setForm({...form,area:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Lokasi / Rack</label>
+            <input value={form.rackNo} onChange={e=>setForm({...form,rackNo:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Dept</label>
+            <input value={form.dept} onChange={e=>setForm({...form,dept:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Tag</label>
+            <input value={form.tagNo} onChange={e=>setForm({...form,tagNo:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Sequence</label>
+            <input type="number" value={form.sequenceNo} onChange={e=>setForm({...form,sequenceNo:e.target.value})}/>
+          </div>
+          <div className="span-3">
+            <label>Status</label>
+            <select value={form.active?'Y':'N'} onChange={e=>setForm({...form,active:e.target.value==='Y'})}>
+              <option value="Y">Active</option>
+              <option value="N">Inactive</option>
+            </select>
+          </div>
+          <div className="span-3">
+            <label>Aksi</label>
+            <div className="row">
+              <button className="btn green" onClick={saveMasterRow}>{editKey?'Update':'Tambah'}</button>
+              <button className="btn" onClick={clearForm}>Clear</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>FII ID</th>
-              <th>PART NUMBER</th>
-              <th>PART NAME</th>
-              <th>QTY/BOX</th>
-              <th>AREA</th>
-              <th>LOKASI & NO RACK</th>
-              <th>DEPT</th>
-              <th>TAG</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shownRows.map((r,i)=><tr key={i}>
-              <td>{r['FII ID']}</td>
-              <td>{r['PART NUMBER']}</td>
-              <td>{r['PART NAME']}</td>
-              <td>{Number(r['QTY/BOX']||0).toLocaleString('id-ID')}</td>
-              <td>{r['AREA']}</td>
-              <td>{r['LOKASI & NO RACK']}</td>
-              <td>{r['DEPT']}</td>
-              <td><b>{r['TAG']}</b></td>
-            </tr>)}
-          </tbody>
-        </table>
+      <div className="card span-12">
+        <div className="between" style={{marginBottom:10}}>
+          <div>
+            <h2 className="title">Master STO</h2>
+            <div className="sub">Search, edit, delete, import, dan export master.</div>
+          </div>
+          <div style={{minWidth:260}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search FII / Part / Name / Area / Rack / Tag"/>
+          </div>
+        </div>
+
+        <div className="table-wrap master-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>FII ID</th>
+                <th>PART NUMBER</th>
+                <th>PART NAME</th>
+                <th>QTY/BOX</th>
+                <th>AREA</th>
+                <th>LOKASI & NO RACK</th>
+                <th>DEPT</th>
+                <th>TAG</th>
+                <th>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r:any)=><tr key={r.key}>
+                <td>{r['FII ID']}</td>
+                <td>{r['PART NUMBER']}</td>
+                <td>{r['PART NAME']}</td>
+                <td>{Number(r['QTY/BOX']||0).toLocaleString('id-ID')}</td>
+                <td>{r['AREA']}</td>
+                <td>{r['LOKASI & NO RACK']}</td>
+                <td>{r['DEPT']}</td>
+                <td><b>{r['TAG']}</b></td>
+                <td>
+                  <div className="row">
+                    <button className="btn small" onClick={()=>editRow(r)}>Edit</button>
+                    <button className="btn small red" onClick={()=>deleteRow(r)}>Delete</button>
+                  </div>
+                </td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>}
+    </>}
   </div>   
 }
-
 
 function UserManagement({users,setUsers}:{users:User[],setUsers:(u:User[])=>void}){
   const empty:User={id:'',username:'',password:'1234',fullName:'',role:'OPERATOR',defaultArea:'RM',signatureName:'',active:true};

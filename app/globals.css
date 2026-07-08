@@ -1262,3 +1262,168 @@
     margin:6px 0 6px 0 !important;
   }
 }
+
+
+/* V1.4.0 - Duplicate guard and extra tag */
+.extra-tag-card{
+  border-color:#fed7aa;
+  background:#fff7ed;
+}
+
+.extra-panel{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid #fdba74;
+}
+
+.extra-master-list{
+  margin-top:10px;
+  max-height:320px;
+  overflow:auto;
+  display:grid;
+  gap:8px;
+}
+
+.extra-master-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#fff;
+  padding:9px 10px;
+}
+
+.input-list-header,
+.span-12.input-list-header{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  display:grid !important;
+  grid-template-columns:42px minmax(180px,1fr) 90px 90px 60px 90px !important;
+  gap:8px !important;
+  align-items:center !important;
+  padding:8px 12px !important;
+  margin:8px 0 8px 0 !important;
+  border-radius:12px !important;
+  background:#e5e7eb !important;
+  color:#374151 !important;
+  font-size:12px !important;
+  font-weight:900 !important;
+  box-sizing:border-box !important;
+}
+
+.input-list-header > div{
+  display:block !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+.input-list-header > div:nth-child(1),
+.input-list-header > div:nth-child(3),
+.input-list-header > div:nth-child(4),
+.input-list-header > div:nth-child(5),
+.input-list-header > div:nth-child(6){
+  text-align:center !important;
+}
+
+@media(max-width:760px){
+  .extra-master-row{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .extra-master-row .btn{
+    width:100%;
+  }
+
+  .input-list-header,
+  .span-12.input-list-header{
+    grid-template-columns:30px minmax(105px,1fr) 58px 58px 36px 48px !important;
+    gap:5px !important;
+    padding:7px 8px !important;
+    font-size:10px !important;
+  }
+}
+
+
+/* V1.4.1 - Extra tag sequence */
+.extra-tag-pill{
+  display:inline-block;
+  margin-top:8px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#dcfce7;
+  color:#166534;
+  font-size:12px;
+  font-weight:900;
+}
+
+.extra-tag-card .between{
+  align-items:flex-start;
+}
+
+@media(max-width:760px){
+  .extra-tag-card .between{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .extra-tag-card .row{
+    display:grid;
+    grid-template-columns:1fr;
+    width:100%;
+  }
+
+  .extra-tag-card .row .btn{
+    width:100%;
+  }
+}
+
+
+/* V1.4.2 - extra tag persist and delete item */
+.item-card .btn.red,
+.btn.small.red{
+  background:#dc2626;
+  color:#fff;
+}
+
+@media(max-width:760px){
+  .item-card .row .btn.small.red{
+    flex:1;
+  }
+}
+
+
+/* V1.4.3 - Master Management */
+.master-form-card{
+  border-color:#bfdbfe;
+  background:#eff6ff;
+}
+
+.master-table-wrap{
+  max-height:520px;
+  overflow:auto;
+}
+
+.master-table-wrap th{
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+@media(max-width:760px){
+  .master-page .between{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .master-page .between input{
+    width:100%;
+  }
+
+  .master-table-wrap{
+    max-height:none;
+  }
+}

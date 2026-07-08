@@ -31,6 +31,41 @@ function fmtDate(v:any){
   return `${d}/${m}/${y}`;
 }
 
+
+function dateKeyFromSto(sto:any){
+  const rawDate = sto?.stoDate;
+
+  // Format normal dari Neon / input date: YYYY-MM-DD
+  if(typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawDate)){
+    return rawDate.slice(0,10);
+  }
+
+  // Kalau stoDate berupa Date/string yang masih bisa diparse
+  if(rawDate){
+    const d = new Date(rawDate);
+    if(!Number.isNaN(d.getTime()) && d.getFullYear() > 2020){
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+  }
+
+  // Fallback kuat dari stoNo: STO-20260708-M032
+  const stoNo = String(sto?.stoNo || '');
+  const m = stoNo.match(/STO-(\d{4})(\d{2})(\d{2})-/);
+  if(m){
+    return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+
+  return '';
+}
+
+function fmtStoDate(sto:any){
+  const key = dateKeyFromSto(sto);
+  if(!key) return '-';
+
+  const [y,m,d] = key.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 export default function PrintPage(){
   const [stos,setStos]=useState<any[]>([]);
   const [parts,setParts]=useState<any[]>([]);
@@ -359,7 +394,7 @@ if(!loaded){
           <div>
             <div className="info-row">
               <div className="label">DATE</div>
-              <div className="value">{fmtDate(sto.stoDate)}</div>
+              <div className="value">{fmtStoDate(sto)}</div>
             </div>
             <div className="info-row">
               <div className="label">AREA</div>
