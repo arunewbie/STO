@@ -119,17 +119,6 @@ export default function Home(){
   useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]);
  useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
 
-  
-  useEffect(()=>{
-    if(!dataLoaded) return;
-
-    fetch('/api/master-sto',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({parts,tags,tagDetails})
-    }).catch(()=>{});
-  },[dataLoaded,parts,tags,tagDetails]);
-
   useEffect(()=>{
     if(!dataLoaded) return;
 
@@ -1491,6 +1480,7 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
       const tagMap=new Map<string,Tag>();
       const nextTagDetails:TagDetail[]=[];
       const usedSeq=new Map<string,number>();
+      const seenDetail=new Set<string>();
 
       rows.forEach((r)=>{
         const fiiId=String(r['FII ID'] || r['fiiId'] || '').trim();
@@ -1525,6 +1515,10 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
             active:true
           });
         }
+
+        const detailKey=`${tagNo}__${partNo}`;
+        if(seenDetail.has(detailKey)) return;
+        seenDetail.add(detailKey);
 
         const seq=(usedSeq.get(tagNo)||0)+1;
         usedSeq.set(tagNo,seq);
@@ -1801,7 +1795,7 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((r:any)=><tr key={r.key}>
+              {filteredRows.map((r:any,i:number)=><tr key={`${r.key}-${r.id || r.SEQUENCE || i}`}>
                 <td>{r['FII ID']}</td>
                 <td>{r['PART NUMBER']}</td>
                 <td>{r['PART NAME']}</td>

@@ -111,6 +111,8 @@ export async function POST(req: NextRequest) {
 
     await sql`DELETE FROM master_sto`;
 
+    const seen = new Set<string>();
+
     for (let i = 0; i < tagDetails.length; i++) {
       const td:any = tagDetails[i];
       const p:any = parts.find((x:any)=>x.partNo === td.partNo) || {};
@@ -120,6 +122,10 @@ export async function POST(req: NextRequest) {
       const tagNo = String(td.tagNo || '').trim();
 
       if(!partNo || !tagNo) continue;
+
+      const uniqueKey = `${tagNo}__${partNo}`;
+      if(seen.has(uniqueKey)) continue;
+      seen.add(uniqueKey);
 
       const id = `MS_${i}_${tagNo}_${partNo}`.replace(/[^a-zA-Z0-9_-]/g,'_');
       const fiiId = String(p.fiiId || '').trim();
