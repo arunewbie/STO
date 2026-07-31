@@ -1387,6 +1387,9 @@ function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
 function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setUsers}:{parts:Part[],setParts:any,tags:Tag[],setTags:any,tagDetails:TagDetail[],setTagDetails:any,users:User[],setUsers:any}){   
   const [tab,setTab]=useState<'MasterSTO'|'User'>('MasterSTO');
   const [search,setSearch]=useState('');
+  const [syncLoading,setSyncLoading]=useState(false);
+  const [syncStatus,setSyncStatus]=useState('Belum dicek');
+  const [neonInfo,setNeonInfo]=useState({item:0,tag:0});
 
   const emptyMaster={
     fiiId:'',
@@ -1688,10 +1691,17 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
 
   
   const syncMasterToNeon=async()=>{
-    const ok=confirm(`Sync Master STO ke Neon?\nItem: ${tagDetails.length}\nTag: ${tags.length}`);
+    const local=getLocalSyncInfo();
+
+    const ok=confirm(`Sync Master STO ke Neon?\nLokal: ${local.item} item / ${local.tag} tag`);
     if(!ok) return;
 
+    setSyncLoading(true);
+    setSyncStatus(`Menyiapkan upload: ${local.item} item / ${local.tag} tag...`);
+
     try{
+      setSyncStatus('Mengirim Master ke Neon...');
+
       const res=await fetch('/api/master-sto',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -1706,12 +1716,17 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
       const j=await res.json();
 
       if(j.ok){
-        alert(`Master berhasil sync ke Neon.\nItem: ${j.count || tagDetails.length}`);
+        setSyncStatus(`Sync berhasil: ${j.count || local.item} item terkirim ke Neon`);
+        await checkNeonMaster();
       }else{
+        setSyncStatus(j.message || 'Gagal sync Master ke Neon');
         alert(j.message || 'Gagal sync Master ke Neon');
       }
     }catch(e){
+      setSyncStatus('Gagal koneksi ke Neon saat sync Master');
       alert('Gagal koneksi ke Neon saat sync Master');
+    }finally{
+      setSyncLoading(false);
     }
   };
 
@@ -1721,6 +1736,9 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
 
     const ok2=confirm('Yakin? Data Master STO akan kosong dan perlu import ulang Excel.');
     if(!ok2) return;
+
+    setSyncLoading(true);
+    setSyncStatus('Menghapus semua Master dari Neon...');
 
     try{
       const res=await fetch('/api/master-sto',{
@@ -1740,12 +1758,53 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
         setParts([]);
         setTags([]);
         setTagDetails([]);
+        setNeonInfo({item:0,tag:0});
+        setSyncStatus('Semua Master sudah dihapus dari Neon dan tampilan');
         alert('Semua Master STO sudah dihapus dari Neon dan tampilan.');
       }else{
+        setSyncStatus(j.message || 'Gagal hapus Master dari Neon');
         alert(j.message || 'Gagal hapus Master dari Neon');
       }
     }catch(e){
+      setSyncStatus('Gagal koneksi ke Neon saat hapus Master');
       alert('Gagal koneksi ke Neon saat hapus Master');
+    }finally{
+      setSyncLoading(false);
+    }
+  };
+
+
+  
+  const getLocalSyncInfo=()=>{
+    const tagSet=new Set(tagDetails.map((td:any)=>String(td.tagNo||'')).filter(Boolean));
+    return {
+      item: tagDetails.length,
+      tag: tagSet.size
+    };
+  };
+
+  const checkNeonMaster=async()=>{
+    setSyncLoading(true);
+    setSyncStatus('Mengecek data Master di Neon...');
+
+    try{
+      const res=await fetch('/api/master-sto');
+      const j=await res.json();
+
+      if(!j.ok){
+        setSyncStatus(j.message || 'Gagal cek Neon');
+        return;
+      }
+
+      const item=Array.isArray(j.tagDetails) ? j.tagDetails.length : 0;
+      const tag=Array.isArray(j.tags) ? j.tags.length : 0;
+
+      setNeonInfo({item,tag});
+      setSyncStatus(`Neon terbaca: ${item} item / ${tag} tag`);
+    }catch(e){
+      setSyncStatus('Gagal koneksi saat cek Neon');
+    }finally{
+      setSyncLoading(false);
     }
   };
 
@@ -1758,8 +1817,9 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
 
         {tab==='MasterSTO' && <>
           <button className="btn primary" onClick={exportMasterSto}>Export Master STO</button>
-          <button className="btn green" onClick={syncMasterToNeon}>Sync Master ke Neon</button>
-          <button className="btn red" onClick={clearAllMaster}>Hapus Semua Master</button>
+          <button className="btn ghost" onClick={checkNeonMaster} disabled={syncLoading}>Cek Data Neon</button>
+          <button className="btn green" onClick={syncMasterToNeon} disabled={syncLoading}>Sync Master ke Neon</button>
+          <button className="btn red" onClick={clearAllMaster} disabled={syncLoading}>Hapus Semua Master</button>
           <label className="btn ghost">
             Import Master STO
             <input type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={importMasterSto}/>
@@ -1771,6 +1831,39 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
     {tab==='User' && <UserManagement users={users} setUsers={setUsers}/>}
 
     {tab==='MasterSTO' && <>
+      <div className="card span-12 sync-progress-card">
+        <div className="between">
+          <div>
+            <h2 className="title">Status Sinkronisasi Master</h2>
+            <div className="sub">Gunakan panel ini setelah import Excel agar jelas data lokal dan Neon sudah sama.</div>
+          </div>
+          <span className={`badge ${syncLoading?'draft':'checked'}`}>{syncLoading?'PROCESS':'READY'}</span>
+        </div>
+
+        <div className="sync-progress-grid">
+          <div>
+            <b>{getLocalSyncInfo().item}</b>
+            <span>Item Lokal</span>
+          </div>
+          <div>
+            <b>{getLocalSyncInfo().tag}</b>
+            <span>Tag Lokal</span>
+          </div>
+          <div>
+            <b>{neonInfo.item}</b>
+            <span>Item Neon</span>
+          </div>
+          <div>
+            <b>{neonInfo.tag}</b>
+            <span>Tag Neon</span>
+          </div>
+        </div>
+
+        <div className="sync-status-line">
+          {syncStatus}
+        </div>
+      </div>
+
       <div className="card span-12 master-form-card">
         <div className="between">
           <div>
