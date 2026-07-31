@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
     const parts:any[] = body.parts || [];
     const tags:any[] = body.tags || [];
     const tagDetails:any[] = body.tagDetails || [];
+    const force = body.force === true;
 
     const existingCountRows = await sql`SELECT COUNT(*)::int AS count FROM master_sto`;
     const existingCount = Number(existingCountRows?.[0]?.count || 0);
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
       }, { status:409 });
     }
 
-    if(existingCount > 0 && incomingCount === 0){
+    if(!force && existingCount > 0 && incomingCount === 0){
       return NextResponse.json({
         ok:false,
         message:`Master sync ditolak: incoming kosong, existing ${existingCount}.`,

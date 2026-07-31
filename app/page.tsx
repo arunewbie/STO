@@ -1686,6 +1686,70 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
     alert('Data master berhasil dihapus');
   };
 
+  
+  const syncMasterToNeon=async()=>{
+    const ok=confirm(`Sync Master STO ke Neon?\nItem: ${tagDetails.length}\nTag: ${tags.length}`);
+    if(!ok) return;
+
+    try{
+      const res=await fetch('/api/master-sto',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          parts,
+          tags,
+          tagDetails,
+          force:true
+        })
+      });
+
+      const j=await res.json();
+
+      if(j.ok){
+        alert(`Master berhasil sync ke Neon.\nItem: ${j.count || tagDetails.length}`);
+      }else{
+        alert(j.message || 'Gagal sync Master ke Neon');
+      }
+    }catch(e){
+      alert('Gagal koneksi ke Neon saat sync Master');
+    }
+  };
+
+  const clearAllMaster=async()=>{
+    const ok=confirm('Hapus SEMUA Master STO dari aplikasi dan Neon?');
+    if(!ok) return;
+
+    const ok2=confirm('Yakin? Data Master STO akan kosong dan perlu import ulang Excel.');
+    if(!ok2) return;
+
+    try{
+      const res=await fetch('/api/master-sto',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          parts:[],
+          tags:[],
+          tagDetails:[],
+          force:true
+        })
+      });
+
+      const j=await res.json();
+
+      if(j.ok){
+        setParts([]);
+        setTags([]);
+        setTagDetails([]);
+        alert('Semua Master STO sudah dihapus dari Neon dan tampilan.');
+      }else{
+        alert(j.message || 'Gagal hapus Master dari Neon');
+      }
+    }catch(e){
+      alert('Gagal koneksi ke Neon saat hapus Master');
+    }
+  };
+
+
   return <div className="grid master-page">
     <div className="card span-12">
       <div className="row">
@@ -1694,6 +1758,8 @@ function Master({parts,setParts,tags,setTags,tagDetails,setTagDetails,users,setU
 
         {tab==='MasterSTO' && <>
           <button className="btn primary" onClick={exportMasterSto}>Export Master STO</button>
+          <button className="btn green" onClick={syncMasterToNeon}>Sync Master ke Neon</button>
+          <button className="btn red" onClick={clearAllMaster}>Hapus Semua Master</button>
           <label className="btn ghost">
             Import Master STO
             <input type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={importMasterSto}/>
