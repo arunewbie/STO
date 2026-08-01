@@ -201,6 +201,26 @@ export async function POST(req: NextRequest) {
           ${s.revisionAt || null},
           NOW()
         )
+        ON CONFLICT (sto_id)
+        DO UPDATE SET
+          sto_no = EXCLUDED.sto_no,
+          sto_date = EXCLUDED.sto_date,
+          area = EXCLUDED.area,
+          tag_no = EXCLUDED.tag_no,
+          creator_user_id = EXCLUDED.creator_user_id,
+          creator_name = EXCLUDED.creator_name,
+          start_time = EXCLUDED.start_time,
+          end_time = EXCLUDED.end_time,
+          duration_hour = EXCLUDED.duration_hour,
+          status = EXCLUDED.status,
+          creator_signed_at = EXCLUDED.creator_signed_at,
+          leader_user_id = EXCLUDED.leader_user_id,
+          leader_name = EXCLUDED.leader_name,
+          leader_signed_at = EXCLUDED.leader_signed_at,
+          revision_note = EXCLUDED.revision_note,
+          revision_by = EXCLUDED.revision_by,
+          revision_at = EXCLUDED.revision_at,
+          updated_at = NOW()
       `;
 
       await sql`

@@ -165,16 +165,65 @@ const refreshStosFromNeon = async (setStos:any) => {
 };
 
 
+
+
+
 const showAppLoading = (message:string='Memproses data ke Neon...') => {
   if(typeof document === 'undefined') return;
-  document.body.classList.add('app-busy');
-  document.body.setAttribute('data-busy-text', message);
+
+  let overlay = document.getElementById('app-loading-overlay');
+
+  if(overlay === null){
+    overlay = document.createElement('div');
+    overlay.id = 'app-loading-overlay';
+
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '99999';
+    overlay.style.background = 'rgba(15,23,42,0.45)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.padding = '20px';
+
+    const box = document.createElement('div');
+    box.id = 'app-loading-box';
+    box.style.background = '#ffffff';
+    box.style.borderRadius = '20px';
+    box.style.padding = '22px 26px';
+    box.style.minWidth = '260px';
+    box.style.maxWidth = '90vw';
+    box.style.boxShadow = '0 24px 70px rgba(15,23,42,0.28)';
+    box.style.textAlign = 'center';
+    box.style.fontWeight = '900';
+    box.style.color = '#111827';
+    box.style.fontSize = '15px';
+    box.style.lineHeight = '1.5';
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+
+  const box = document.getElementById('app-loading-box');
+  if(box !== null){
+    box.textContent = `${message}\nMohon tunggu...`;
+    box.style.whiteSpace = 'pre-line';
+  }
+
+  document.body.style.pointerEvents = 'none';
 };
 
 const hideAppLoading = () => {
   if(typeof document === 'undefined') return;
-  document.body.classList.remove('app-busy');
-  document.body.removeAttribute('data-busy-text');
+
+  setTimeout(()=>{
+    const overlay = document.getElementById('app-loading-overlay');
+    if(overlay !== null){
+      overlay.remove();
+    }
+
+    document.body.style.pointerEvents = '';
+  },700);
 };
 
 export default function Home(){
