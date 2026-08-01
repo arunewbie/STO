@@ -66,6 +66,33 @@ function fmtStoDate(sto:any){
   return `${d}/${m}/${y}`;
 }
 
+
+function getStoDateKey(sto:any){
+  const raw = sto?.stoDate;
+
+  if(typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)){
+    const y = Number(raw.slice(0,4));
+    if(y >= 2020 && y <= 2099){
+      return raw.slice(0,10);
+    }
+  }
+
+  const stoNo = String(sto?.stoNo || '');
+  const m = stoNo.match(/STO-(\d{4})(\d{2})(\d{2})-/);
+  if(m){
+    return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+
+  return '';
+}
+
+function showStoDate(sto:any){
+  const key = getStoDateKey(sto);
+  if(!key) return '-';
+  const [y,m,d] = key.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 export default function PrintPage(){
   const [stos,setStos]=useState<any[]>([]);
   const [parts,setParts]=useState<any[]>([]);
@@ -394,7 +421,7 @@ if(!loaded){
           <div>
             <div className="info-row">
               <div className="label">DATE</div>
-              <div className="value">{fmtStoDate(sto)}</div>
+              <div className="value">{showStoDate(sto)}</div>
             </div>
             <div className="info-row">
               <div className="label">AREA</div>

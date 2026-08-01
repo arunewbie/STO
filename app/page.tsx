@@ -7,10 +7,46 @@ import { sampleParts, sampleTagDetails, sampleTags, sampleUsers } from '../lib/s
 
 type Menu = 'DASHBOARD'|'INPUT'|'CHECK'|'RESUME'|'MASTER';
 const key = (k:string)=>`sto_app_${k}`;
-const today = ()=>new Date().toISOString().slice(0,10);
+const today = ()=>{
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
 const nowIso = ()=>new Date().toISOString();
 const timeOnly = (iso:string)=> new Date(iso).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 const fmtDateTime = (iso?:string)=> iso ? new Date(iso).toLocaleString('id-ID') : '-';
+
+const getStoDateKey = (sto:any) => {
+  const raw = sto?.stoDate;
+
+  if(typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)){
+    const y = Number(raw.slice(0,4));
+    if(y >= 2020 && y <= 2099){
+      return raw.slice(0,10);
+    }
+  }
+
+  const stoNo = String(sto?.stoNo || '');
+  const m = stoNo.match(/STO-(\d{4})(\d{2})(\d{2})-/);
+  if(m){
+    return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+
+  return '';
+};
+
+const showStoDate = (sto:any) => {
+  const key = getStoDateKey(sto);
+  if(!key) return '-';
+  const [y,m,d] = key.split('-');
+  return `${d}/${m}/${y}`;
+};
+
+const showDateKey = (key:string) => {
+  if(!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return '-';
+  const [y,m,d] = key.split('-');
+  return `${d}/${m}/${y}`;
+};
+
 const uid = (p='ID') => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `${p}${crypto.randomUUID().replaceAll('-','')}`;
@@ -1063,7 +1099,7 @@ function CheckSto({user,stos,setStos}:{user:User,stos:StoHeader[],setStos:(s:Sto
       <div className="between">
         <div>
           <b>{sto.tagNo}</b> • {sto.creatorName} • {sto.details.length} item
-          <div className="sub">{sto.stoNo} • {sto.stoDate} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
+          <div className="sub">{sto.stoNo} • {showStoDate(sto)} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
         </div>
         <div className="row">
           <button className="btn green" onClick={()=>checkAll(sto)}>Check OK Per Tag</button>
@@ -1193,9 +1229,9 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
   };
 
   const doPrintMass=()=>{
-    const selected=stos.filter(s=>dateKey(s.stoDate)===printDate);
+    const selected=stos.filter(s=>getStoDateKey(s)===printDate);
     if(selected.length===0){
-      alert(`Tidak ada data STO untuk tanggal ${fmtDate(printDate)}`);
+      alert(`Tidak ada data STO untuk tanggal ${showDateKey(printDate)}`);
       return;
     }
     const ids=selected.map(s=>s.stoId).join(',');
@@ -1215,7 +1251,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
     return ()=>window.removeEventListener('afterprint', cleanup);
   },[]);
 
-  const massCount=stos.filter(s=>dateKey(s.stoDate)===printDate).length;
+  const massCount=stos.filter(s=>getStoDateKey(s)===printDate).length;
 
   return <div className={`grid resume-page print-mode-${printMode.toLowerCase()}`}>
     <div className="card span-12 no-print">
@@ -1237,7 +1273,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
     </div>
 
     {stos.map(sto=>{
-      const isDateTarget=dateKey(sto.stoDate)===printDate;
+      const isDateTarget=getStoDateKey(sto)===printDate;
       const isSingleTarget=sto.stoId===printStoId;
 
       return <div
@@ -1248,7 +1284,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
         <div className="between no-print">
           <div>
             <b>{sto.stoNo}</b> <span className={`badge ${String(sto.status).toLowerCase()}`}>{sto.status}</span>
-            <div className="sub">{fmtDate(sto.stoDate)} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
+            <div className="sub">{showStoDate(sto)} • Tag {sto.tagNo} • PIC {sto.creatorName} • Waktu {Math.round((Number(sto.durationHour)||0)*3600)} sec</div>
           </div>
           <div className="row">
             <button className="btn" onClick={()=>doPrintOne(sto)}>Print</button>
@@ -1308,7 +1344,7 @@ function AuditPrint({sto,parts}:{sto:StoHeader,parts:Part[]}){
       <div className="print-info">
         <div className="print-info-row">
           <div className="print-label">DATE</div>
-          <div>{fmtDate(sto.stoDate)}</div>
+          <div>{showStoDate(sto)}</div>
         </div>
         <div className="print-info-row">
           <div className="print-label">AREA</div>
