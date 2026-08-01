@@ -296,7 +296,7 @@ export default function Home(){
     <div className="topbar no-print">
       <div className="brand"><div><div className="logo">STO Web App</div><div className="sub">Mobile-first Stock Taking Tag</div></div><div className="row"><span className="pill">{user.fullName} / {user.role}</span><button className="btn small red" onClick={()=>{localStorage.removeItem(key('session')); setUser(null)}}>Logout</button></div></div>
       <div className="nav">
-        {((user.role==='ADMIN'?['DASHBOARD','INPUT','CHECK','RESUME','MASTER']:['DASHBOARD','INPUT','CHECK','RESUME']) as Menu[]).map(m=><button key={m} className={menu===m?'active':''} onClick={()=>setMenu(m)}>{m}</button>)}
+        {((user.role==='ADMIN'?['DASHBOARD','INPUT','CHECK','RESUME','MASTER']:['DASHBOARD','INPUT','CHECK','RESUME']) as Menu[]).map(m=><button key={m} className={menu===m?'active':''} onClick={()=>setMenu(m)}>{m}</button>)}<button onClick={()=>window.open('/print-blank','_blank')}>PRINT TAG KOSONG</button>
       </div>
     </div>
     {menu==='DASHBOARD' && <Dashboard tags={tags} stos={stos}/>} 
