@@ -1,6 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '../../../lib/db';
 
+function dateOnly(v:any){
+  if(!v) return '';
+
+  if(typeof v === 'string'){
+    if(/^\d{4}-\d{2}-\d{2}/.test(v)){
+      const y = Number(v.slice(0,4));
+      if(y >= 2020 && y <= 2099) return v.slice(0,10);
+    }
+
+    const d = new Date(v);
+    if(Number.isNaN(d.getTime())) return '';
+
+    const y = d.getUTCFullYear();
+    if(y < 2020 || y > 2099) return '';
+
+    return `${y}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  }
+
+  const d = new Date(v);
+  if(Number.isNaN(d.getTime())) return '';
+
+  const y = d.getUTCFullYear();
+  if(y < 2020 || y > 2099) return '';
+
+  return `${y}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function dateFromStoNo(stoNo:any){
+  const m = String(stoNo || '').match(/STO-(\d{4})(\d{2})(\d{2})-/);
+  if(!m) return '';
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+function normalizeStoDate(sto:any){
+  const raw = sto?.stoDate;
+
+  if(typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)){
+    const y = Number(raw.slice(0,4));
+    if(y >= 2020 && y <= 2099){
+      return raw.slice(0,10);
+    }
+  }
+
+  const fromNo = dateFromStoNo(sto?.stoNo);
+  if(fromNo) return fromNo;
+
+  const parsed = dateOnly(raw);
+  if(parsed) return parsed;
+
+  return new Date().toISOString().slice(0,10);
+}
+
+
 function toIso(v:any){
   if(!v) return undefined;
   try{
@@ -102,6 +155,7 @@ export async function POST(req: NextRequest) {
 
     for(const s of stos){
       const stoId = String(s.stoId || '');
+      const stoDate = normalizeStoDate(s);
       if(!stoId) continue;
 
       await sql`
@@ -129,7 +183,7 @@ export async function POST(req: NextRequest) {
         VALUES (
           ${stoId},
           ${String(s.stoNo || '')},
-          ${String(s.stoDate || new Date().toISOString().slice(0,10))},
+          ${stoDate},
           ${String(s.area || '')},
           ${String(s.tagNo || '')},
           ${String(s.creatorUserId || '')},

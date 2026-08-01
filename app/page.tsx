@@ -114,11 +114,19 @@ function safeCalc(expr:string){
 
 
 const saveStoToNeon = async (sto:any) => {
+  showAppLoading('Menyimpan data STO ke Neon...');
+
   try{
+    const safeDate = getStoDateKey(sto) || today();
+    const safeSto = {
+      ...sto,
+      stoDate: safeDate
+    };
+
     const res = await fetch('/api/stos',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({stos:[sto]})
+      body:JSON.stringify({stos:[safeSto]})
     });
 
     const j = await res.json();
@@ -132,6 +140,8 @@ const saveStoToNeon = async (sto:any) => {
   }catch(e){
     alert('Gagal koneksi ke Neon saat simpan STO');
     return false;
+  }finally{
+    hideAppLoading();
   }
 };
 
@@ -152,6 +162,19 @@ const refreshStosFromNeon = async (setStos:any) => {
   }catch(e){
     return false;
   }
+};
+
+
+const showAppLoading = (message:string='Memproses data ke Neon...') => {
+  if(typeof document === 'undefined') return;
+  document.body.classList.add('app-busy');
+  document.body.setAttribute('data-busy-text', message);
+};
+
+const hideAppLoading = () => {
+  if(typeof document === 'undefined') return;
+  document.body.classList.remove('app-busy');
+  document.body.removeAttribute('data-busy-text');
 };
 
 export default function Home(){
@@ -1257,6 +1280,8 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
 
     if(!confirm(`Hapus data STO ${sto.stoNo} / Tag ${sto.tagNo}?`)) return;
 
+    showAppLoading('Menghapus transaksi STO dari Neon...');
+
     try{
       const res = await fetch(`/api/stos?id=${encodeURIComponent(sto.stoId)}`,{
         method:'DELETE',
@@ -1285,6 +1310,8 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
       alert('Data STO berhasil dihapus dari Neon.');
     }catch(e){
       alert('Gagal koneksi Neon saat hapus STO.');
+    }finally{
+      hideAppLoading();
     }
   };
 
