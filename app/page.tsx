@@ -478,7 +478,7 @@ function InputSto({user,parts,setParts,tags,setTags,tagDetails,setTagDetails,sto
   };
 
   const sameDateTag=(s:any)=>{
-    return dateKey(s.stoDate)===dateKey(date) && String(s.tagNo||'')===String(tagNo||'');
+    return getStoDateKey(s)===date && String(s.tagNo||'')===String(tagNo||'');
   };
 
   const makeNextTagNo=()=>{
@@ -545,15 +545,28 @@ function InputSto({user,parts,setParts,tags,setTags,tagDetails,setTagDetails,sto
       setIsAdditionalTag(false);
     }
 
-    const rev = stos.find(s=>dateKey(s.stoDate)===dateKey(date) && s.tagNo===tagNo && s.status==='REVISION');
+    const revExact = stos.find(s=>getStoDateKey(s)===date && s.tagNo===tagNo && s.status==='REVISION');
+    const revAnyDate = stos.find(s=>s.tagNo===tagNo && s.status==='REVISION');
+    const rev = revExact || revAnyDate;
 
     if(rev){
+      const revDate = getStoDateKey(rev);
+
+      if(revDate && revDate !== date){
+        setDate(revDate);
+      }
+
       setArea(rev.area || user.defaultArea || 'RM');
       setStart(nowIso());
       setDetails((rev.details||[]).map((d:any)=>({
         ...d,
         id:d.id || uid('D'),
-        leaderCheckStatus:false
+        boxQty:Number(d.boxQty||0),
+        fractionQty:Number(d.fractionQty||0),
+        grandTotal:Number(d.grandTotal||0),
+        calculationNote:d.calculationNote || '',
+        leaderCheckStatus:false,
+        leaderNgNote:d.leaderNgNote || ''
       })));
       return;
     }
