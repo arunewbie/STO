@@ -212,3 +212,42 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = String(searchParams.get('id') || '');
+
+    if(!id){
+      return NextResponse.json(
+        { ok:false, message:'ID STO kosong' },
+        { status:400 }
+      );
+    }
+
+    await sql`
+      DELETE FROM sto_details
+      WHERE sto_id = ${id}
+    `;
+
+    await sql`
+      DELETE FROM sto_headers
+      WHERE sto_id = ${id}
+    `;
+
+    return NextResponse.json({
+      ok:true,
+      message:'Transaksi STO dihapus dari Neon'
+    }, {
+      headers:{
+        'Cache-Control':'no-store'
+      }
+    });
+  } catch (err:any) {
+    return NextResponse.json(
+      { ok:false, message: err.message || 'Delete STO error' },
+      { status:500 }
+    );
+  }
+}
+

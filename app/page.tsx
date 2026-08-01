@@ -1249,20 +1249,42 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
 
   const deleteSto=async(sto:StoHeader)=>{
     const allowed = user.role==='ADMIN' || sto.status==='REVISION';
+
     if(!allowed){
       alert('Hapus STO hanya boleh oleh ADMIN, atau data yang statusnya REVISION.');
       return;
     }
 
-    if(confirm(`Hapus data STO ${sto.stoNo} / Tag ${sto.tagNo}?`)){
-      try{
-        await fetch(`/api/stos?id=${encodeURIComponent(sto.stoId)}`,{
-          method:'DELETE'
-        });
-      }catch(e){}
+    if(!confirm(`Hapus data STO ${sto.stoNo} / Tag ${sto.tagNo}?`)) return;
 
-      setStos(stos.filter(s=>s.stoId!==sto.stoId));
-      alert('Data STO berhasil dihapus.');
+    try{
+      const res = await fetch(`/api/stos?id=${encodeURIComponent(sto.stoId)}`,{
+        method:'DELETE',
+        cache:'no-store'
+      });
+
+      const j = await res.json();
+
+      if(!j.ok){
+        alert(j.message || 'Gagal hapus data STO dari Neon');
+        return;
+      }
+
+      const reload = await fetch(`/api/stos?ts=${Date.now()}`,{
+        cache:'no-store'
+      });
+
+      const rj = await reload.json();
+
+      if(rj.ok && Array.isArray(rj.stos)){
+        setStos(rj.stos);
+      }else{
+        setStos(stos.filter(s=>s.stoId!==sto.stoId));
+      }
+
+      alert('Data STO berhasil dihapus dari Neon.');
+    }catch(e){
+      alert('Gagal koneksi Neon saat hapus STO.');
     }
   };
 
