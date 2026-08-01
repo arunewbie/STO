@@ -93,8 +93,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const stos:any[] = body.stos || [];
 
-    await sql`DELETE FROM sto_details`;
-    await sql`DELETE FROM sto_headers`;
 
     for(const s of stos){
       const stoId = String(s.stoId || '');
@@ -143,6 +141,11 @@ export async function POST(req: NextRequest) {
           ${s.revisionAt || null},
           NOW()
         )
+      `;
+
+      await sql`
+        DELETE FROM sto_details
+        WHERE sto_id = ${stoId}
       `;
 
       const details:any[] = s.details || [];

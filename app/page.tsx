@@ -76,6 +76,29 @@ function safeCalc(expr:string){
   }
 }
 
+
+const saveStoToNeon = async (sto:any) => {
+  try{
+    const res = await fetch('/api/stos',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({stos:[sto]})
+    });
+
+    const j = await res.json();
+
+    if(!j.ok){
+      alert(j.message || 'Gagal simpan STO ke Neon');
+      return false;
+    }
+
+    return true;
+  }catch(e){
+    alert('Gagal koneksi ke Neon saat simpan STO');
+    return false;
+  }
+};
+
 export default function Home(){
   const [users,setUsers]=useState<User[]>(sampleUsers);
   const [parts,setParts]=useState<Part[]>(sampleParts);
@@ -118,16 +141,6 @@ export default function Home(){
   },[]);
   useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]);
  useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
-
-  useEffect(()=>{
-    if(!dataLoaded) return;
-
-    fetch('/api/stos',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({stos})
-    }).catch(()=>{});
-  },[dataLoaded,stos]);
 
   if(!dataLoaded) return <div className="login"><div className="card"><h2>Loading data STO dari Neon...</h2></div></div>;
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
@@ -545,6 +558,9 @@ function InputSto({user,parts,setParts,tags,setTags,tagDetails,setTagDetails,sto
         }))
       } as any;
 
+      const saved = await saveStoToNeon(updated);
+      if(saved === false) return;
+
       setStos(stos.map(s=>s.stoId===revisionSto.stoId?updated:s));
       alert('Revisi STO tersimpan. Status kembali ke COUNTED dan siap dicek leader.');
       return;
@@ -650,9 +666,13 @@ function InputSto({user,parts,setParts,tags,setTags,tagDetails,setTagDetails,sto
       details
     } as any;
 
+    const saved = await saveStoToNeon(sto);
+
+    if(!saved) return;
+
     setStos([sto,...stos]);
     if(isAdditionalTag || additionalTagNos.includes(tagNo)){ setIsAdditionalTag(true); }
-    alert('STO tersimpan dan signature creator sudah dibuat.');
+    alert('STO tersimpan ke Neon dan signature creator sudah dibuat.');
   };
 
   return <div className="grid">
@@ -955,7 +975,12 @@ function StoItem({d,index,mode,update,remove}:{d:StoDetail,index:number,mode:Vie
 
 function CheckSto({user,stos,setStos}:{user:User,stos:StoHeader[],setStos:(s:StoHeader[])=>void}){
   const list=stos.filter(s=>s.status==='COUNTED');
-  const updateSto=(sto:StoHeader)=>setStos(stos.map(s=>s.stoId===sto.stoId?sto:s));
+  const updateSto=async(sto:StoHeader)=>{
+    const saved = await saveStoToNeon(sto);
+    if(saved === false) return;
+
+    setStos(stos.map(s=>s.stoId===sto.stoId?sto:s));
+  };
 
   const updateDetailCheck=(sto:StoHeader, detailId:string, patch:any)=>{
     const at=nowIso();
@@ -1144,7 +1169,7 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
     XLSX.writeFile(wb,`STO_Report_${today()}.xlsx`);
   };
 
-  const deleteSto=(sto:StoHeader)=>{
+  const deleteSto=async(sto:StoHeader)=>{
     const allowed = user.role==='ADMIN' || sto.status==='REVISION';
     if(!allowed){
       alert('Hapus STO hanya boleh oleh ADMIN, atau data yang statusnya REVISION.');
@@ -1152,6 +1177,12 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
     }
 
     if(confirm(`Hapus data STO ${sto.stoNo} / Tag ${sto.tagNo}?`)){
+      try{
+        await fetch(`/api/stos?id=${encodeURIComponent(sto.stoId)}`,{
+          method:'DELETE'
+        });
+      }catch(e){}
+
       setStos(stos.filter(s=>s.stoId!==sto.stoId));
       alert('Data STO berhasil dihapus.');
     }
