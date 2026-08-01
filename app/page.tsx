@@ -135,6 +135,25 @@ const saveStoToNeon = async (sto:any) => {
   }
 };
 
+
+const refreshStosFromNeon = async (setStos:any) => {
+  try{
+    const res = await fetch(`/api/stos?ts=${Date.now()}`,{
+      cache:'no-store'
+    });
+    const j = await res.json();
+
+    if(j.ok && Array.isArray(j.stos)){
+      setStos(j.stos);
+      return true;
+    }
+
+    return false;
+  }catch(e){
+    return false;
+  }
+};
+
 export default function Home(){
   const [users,setUsers]=useState<User[]>(sampleUsers);
   const [parts,setParts]=useState<Part[]>(sampleParts);
@@ -177,6 +196,26 @@ export default function Home(){
   },[]);
   useEffect(()=>{ fetch('/api/users').then(r=>r.json()).then(j=>{ if(j.ok&&j.users) setUsers(j.users); }).catch(()=>{}); },[]);
  useEffect(()=>{ if(user && user.role!=='ADMIN' && menu==='MASTER') setMenu('DASHBOARD'); },[user,menu]);
+
+  useEffect(()=>{
+    if(dataLoaded === false) return;
+
+    const onFocus=()=>refreshStosFromNeon(setStos);
+    const onVisible=()=>{
+      if(document.visibilityState === 'visible'){
+        refreshStosFromNeon(setStos);
+      }
+    };
+
+    window.addEventListener('focus',onFocus);
+    document.addEventListener('visibilitychange',onVisible);
+
+    return ()=>{
+      window.removeEventListener('focus',onFocus);
+      document.removeEventListener('visibilitychange',onVisible);
+    };
+  },[dataLoaded]);
+
 
   if(!dataLoaded) return <div className="login"><div className="card"><h2>Loading data STO dari Neon...</h2></div></div>;
   if(!user) return <Login users={users} onLogin={(u)=>{setUser(u); save('session',u)}} />;
@@ -1159,6 +1198,9 @@ function CheckSto({user,stos,setStos}:{user:User,stos:StoHeader[],setStos:(s:Sto
 
 
 function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader[],setStos:(s:StoHeader[])=>void}){
+  useEffect(()=>{
+    refreshStosFromNeon(setStos);
+  },[]);
   const [printDate,setPrintDate]=useState(today());
   const [printMode,setPrintMode]=useState<'NONE'|'ONE'|'MASS'>('NONE');
   const [printStoId,setPrintStoId]=useState('');
@@ -1260,7 +1302,10 @@ function Resume({user,parts,stos,setStos}:{user:User,parts:Part[],stos:StoHeader
           <h2>Resume STO</h2>
           <p className="muted">Export Excel, print per tag, print masal per tanggal, dan hapus transaksi.</p>
         </div>
-        <button className="btn primary" onClick={exportExcel}>Export Excel</button>
+        <div className="row">
+          <button className="btn ghost" onClick={()=>refreshStosFromNeon(setStos)}>Refresh Data Neon</button>
+          <button className="btn primary" onClick={exportExcel}>Export Excel</button>
+        </div>
       </div>
 
       <div className="resume-print-toolbar">
